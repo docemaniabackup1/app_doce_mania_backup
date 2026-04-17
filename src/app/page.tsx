@@ -294,8 +294,9 @@ export default function Home() {
             <CopyToClipboardButton
               textToCopy={allProductsText}
               buttonText="Copiar"
-              className="h-12 bg-slate-700 hover:bg-slate-600 text-white border-slate-600 text-xs sm:text-sm"
+              className="h-12 bg-slate-700 hover:bg-slate-600 text-white border-slate-600 text-xs sm:text-sm disabled:opacity-50"
               variant="outline"
+              disabled={!clientName.trim()}
             />
             <RegisterSaleButton
               products={products}

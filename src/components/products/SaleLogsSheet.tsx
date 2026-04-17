@@ -7,7 +7,12 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  SheetClose,
 } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { History, Trash2, Receipt, X, ChevronDown, ChevronUp } from 'lucide-react';
@@ -146,17 +151,6 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const formatDateShort = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('pt-BR', {
@@ -233,10 +227,24 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
             <History className="h-5 w-5" />
           </button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="h-[90vh] sm:h-[85vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white">
-          <SheetHeader className="pb-2">
-            <SheetTitle className="text-lg text-white">Histórico de Vendas</SheetTitle>
-          </SheetHeader>
+        <SheetContent 
+          side="bottom" 
+          className="h-[90vh] sm:h-[85vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <SheetHeader>
+              <SheetTitle className="text-lg text-white">Histórico de Vendas</SheetTitle>
+            </SheetHeader>
+            <SheetClose asChild>
+              <button
+                className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
+                aria-label="Fechar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </SheetClose>
+          </div>
           
           {/* Filtros: Dia, Semana, Mês, Total */}
           <div className="flex gap-1 py-3 border-b border-gray-700">
@@ -402,33 +410,27 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
         </SheetContent>
       </Sheet>
 
-      {/* Modal de Cupom */}
-      {couponImage && (
-        <div 
-          className="fixed inset-0 z-[10000] bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setCouponImage(null)}
-        >
-          <div className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center">
-            {/* Botão fechar no topo, fora da imagem */}
-            <button
-              className="mb-3 px-6 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm font-medium hover:bg-gray-700 transition-colors flex items-center gap-2 active:bg-gray-600"
-              onClick={(e) => {
-                e.stopPropagation();
-                setCouponImage(null);
-              }}
+      {/* Modal de Cupom usando Dialog */}
+      <Dialog open={!!couponImage} onOpenChange={() => setCouponImage(null)}>
+        <DialogContent className="sm:max-w-sm w-[95vw] bg-gray-800 border-gray-700 text-white flex flex-col items-center">
+          <div className="w-full flex justify-center mb-4">
+            <Button
+              onClick={() => setCouponImage(null)}
+              className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium flex items-center gap-2"
             >
               <X className="h-5 w-5" />
               Fechar
-            </button>
+            </Button>
+          </div>
+          {couponImage && (
             <img 
               src={couponImage} 
               alt="Cupom" 
-              className="max-w-full max-h-[calc(90vh-80px)] rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              className="max-w-full max-h-[60vh] rounded-lg shadow-2xl"
             />
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
