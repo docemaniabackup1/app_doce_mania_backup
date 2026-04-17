@@ -47,37 +47,38 @@ const ResetQuantitiesButton: React.FC<ResetQuantitiesButtonProps> = ({ fetchProd
     <>
       <Button 
         variant="outline" 
+        size="sm" 
         onClick={() => setIsOpen(true)} 
-        className="h-11 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium border-slate-600 rounded-xl"
+        className="bg-yellow-600 hover:bg-yellow-700 text-white h-9 px-3 text-xs border-yellow-500"
       >
-        <RotateCcw className="h-4 w-4 mr-1.5" />
+        <RotateCcw className="h-3 w-3 mr-1" />
         Zerar
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="w-[90vw] max-w-sm bg-slate-900 border-slate-700 text-white p-4 rounded-2xl">
-          <DialogHeader className="pb-1">
-            <DialogTitle className="text-white flex items-center gap-2 text-base justify-center">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+        <DialogContent className="sm:max-w-sm w-[95vw] bg-gray-800 border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
               Confirmar Ação
             </DialogTitle>
           </DialogHeader>
-          <div className="py-3">
-            <p className="text-slate-400 text-center mb-4 text-sm">
-              Zerar todas as quantidades selecionadas?
+          <div className="py-4">
+            <p className="text-gray-300 text-center mb-4">
+              Deseja zerar todas as quantidades selecionadas?
             </p>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => setIsOpen(false)}
-                className="flex-1 h-10 border-slate-600 text-slate-300 hover:bg-slate-800 text-sm rounded-xl"
+                className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
                 disabled={isLoading}
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleResetQuantities}
-                className="flex-1 h-10 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-xl"
+                className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white"
                 disabled={isLoading}
               >
                 {isLoading ? 'Zerando...' : 'Confirmar'}

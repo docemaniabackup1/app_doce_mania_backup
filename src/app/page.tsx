@@ -7,16 +7,17 @@ import Footer from '@/components/products/Footer';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import CopyToClipboardButton from '@/components/products/CopyToClipboardButton';
 import ResetQuantitiesButton from '@/components/products/ResetQuantitiesButton';
 import RegisterSaleButton from '@/components/products/RegisterSaleButton';
-import { Plus, User } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Product } from '@/lib/supabase';
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [clientName, setClientName] = useState('');
+  const [clientName, setClientName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set());
@@ -27,9 +28,8 @@ export default function Home() {
       const response = await fetch('/api/products');
       if (!response.ok) throw new Error('Erro ao carregar');
       const data = await response.json();
-      setProducts(data || []);
-    } catch (error) {
-      console.error('Erro ao carregar:', error);
+      setProducts(data);
+    } catch {
       toast.error('Erro ao carregar produtos');
     } finally {
       setLoading(false);
@@ -258,99 +258,81 @@ export default function Home() {
   // Contar produtos visíveis
   const visibleCount = products.filter(p => isAdmin || p.stock > 0).length;
 
-  // Calcular altura do header
-  const headerHeight = isAdmin ? 'pt-[68px]' : 'pt-[52px]';
+  // Padding top baseado no header (admin tem badge extra)
+  const headerPadding = isAdmin ? 'pt-[88px] sm:pt-[76px]' : 'pt-[68px] sm:pt-[60px]';
 
   return (
     <div className="min-h-screen bg-slate-900">
       <Header products={products} isAdmin={isAdmin} onAdminChange={handleAdminChange} />
       
-      <main className={`w-full max-w-4xl mx-auto px-3 sm:px-4 ${headerHeight} pb-20`}>
-        {/* Seção: Cliente e Ações */}
-        <section className="mb-4 mt-2">
-          {/* Nome do Cliente */}
-          <div className="bg-slate-800 rounded-xl p-3 border border-slate-700">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <User className="h-4 w-4 text-blue-400" />
-              </div>
-              <div className="flex-1">
-                <Input
-                  type="text"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value.toUpperCase())}
-                  placeholder="Nome do cliente *"
-                  className="h-10 text-base bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 uppercase font-semibold"
-                  maxLength={50}
-                />
-              </div>
-            </div>
-            
-            {/* Botões de Ação */}
-            <div className="grid grid-cols-3 gap-2">
-              <RegisterSaleButton
-                products={products}
-                clientName={clientName}
-                couponText={allProductsText}
-                onSuccess={handleSaleSuccess}
-              />
-              <CopyToClipboardButton
-                textToCopy={allProductsText}
-                buttonText="Copiar"
-                className="h-11 bg-slate-700 hover:bg-slate-600 text-white border-slate-600 text-sm"
-                variant="outline"
-              />
-              <ResetQuantitiesButton fetchProducts={fetchProducts} />
-            </div>
+      <main className={`w-full max-w-4xl mx-auto px-3 sm:px-4 pb-24 ${headerPadding}`}>
+        {/* Área do Cupom */}
+        <div className="mb-4 p-4 border border-slate-700 rounded-xl bg-slate-800 shadow-lg">
+          <div className="mb-3">
+            <Label htmlFor="client-name" className="block text-sm font-medium text-slate-400 mb-1.5">
+              Nome do Cliente *
+            </Label>
+            <Input
+              id="client-name"
+              type="text"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value.toUpperCase())}
+              placeholder="Digite o nome (obrigatório)"
+              className="h-12 text-base bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 uppercase font-medium"
+              maxLength={50}
+            />
           </div>
           
-          {/* Cupom Preview */}
-          <details className="mt-2">
-            <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400 py-1.5 text-center">
-              Ver cupom
-            </summary>
-            <Textarea
-              readOnly
-              value={allProductsText}
-              rows={8}
-              className="mt-2 font-mono bg-slate-800 text-slate-400 border-slate-700 resize-none overflow-x-hidden text-[10px] rounded-lg"
+          <Textarea
+            readOnly
+            value={allProductsText}
+            rows={10}
+            className="mb-3 font-mono bg-slate-700/50 text-slate-300 border-slate-600 resize-none overflow-x-hidden text-xs rounded-lg"
+          />
+          
+          <div className="flex gap-2">
+            <CopyToClipboardButton
+              textToCopy={allProductsText}
+              buttonText="Copiar"
+              className="flex-1 h-12 bg-slate-700 hover:bg-slate-600 text-white border-slate-600"
+              variant="outline"
             />
-          </details>
-        </section>
+            <RegisterSaleButton
+              products={products}
+              clientName={clientName}
+              couponText={allProductsText}
+              onSuccess={handleSaleSuccess}
+            />
+            <ResetQuantitiesButton fetchProducts={fetchProducts} />
+          </div>
+        </div>
 
-        {/* Botão Adicionar Produto - Admin */}
+        {/* Botão de Adicionar Produto - Apenas Admin */}
         {isAdmin && (
-          <section className="mb-4">
+          <div className="mb-4">
             <Button 
               onClick={handleAddProduct} 
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl"
+              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
             >
               <Plus className="h-4 w-4 mr-2" /> Adicionar Produto
             </Button>
-          </section>
+          </div>
         )}
 
-        {/* Seção: Produtos */}
-        <section>
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Produtos</h2>
-            <span className="text-xs text-slate-500">{visibleCount} disponíveis</span>
+        {/* Lista de Produtos */}
+        {loading ? (
+          <div className="text-center text-slate-400 py-8">
+            Carregando produtos...
           </div>
-
-          {loading ? (
-            <div className="text-center text-slate-400 py-12">
-              <div className="animate-pulse">Carregando...</div>
-            </div>
-          ) : visibleCount === 0 ? (
-            <div className="text-center text-slate-500 py-12 bg-slate-800/50 rounded-xl border border-slate-700">
-              {isAdmin ? 'Nenhum produto cadastrado' : 'Nenhum produto disponível'}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-              {productCards}
-            </div>
-          )}
-        </section>
+        ) : visibleCount === 0 ? (
+          <div className="text-center text-slate-400 py-8">
+            {isAdmin ? 'Nenhum produto cadastrado' : 'Nenhum produto disponível'}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {productCards}
+          </div>
+        )}
       </main>
       
       <Footer />
