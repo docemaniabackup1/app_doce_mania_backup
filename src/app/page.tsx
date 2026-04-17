@@ -305,17 +305,19 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Botões de Ação */}
-        <div className="mb-4 flex gap-2">
-          <Button 
-            onClick={handleAddProduct} 
-            size="sm" 
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white h-11 sm:h-10"
-          >
-            <Plus className="h-4 w-4 mr-1" /> Adicionar Produto
-          </Button>
-          <ResetQuantitiesButton fetchProducts={fetchProducts} />
-        </div>
+        {/* Botões de Ação - Apenas Admin */}
+        {isAdmin && (
+          <div className="mb-4 flex gap-2">
+            <Button 
+              onClick={handleAddProduct} 
+              size="sm" 
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white h-11 sm:h-10"
+            >
+              <Plus className="h-4 w-4 mr-1" /> Adicionar Produto
+            </Button>
+            <ResetQuantitiesButton fetchProducts={fetchProducts} />
+          </div>
+        )}
 
         {/* Lista de Produtos */}
         {loading ? (

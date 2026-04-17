@@ -32,24 +32,14 @@ interface ProductCardProps {
 
 // Função para normalizar preço (aceita ponto e vírgula)
 function normalizePrice(value: string): number {
-  // Remove espaços e caracteres inválidos, mantém apenas números, ponto e vírgula
   let cleanValue = value.trim();
-  
-  // Se vazio, retorna 0
   if (cleanValue === '') return 0;
-  
-  // Remove zeros à esquerda antes do número (ex: 02,19 -> 2,19)
   cleanValue = cleanValue.replace(/^0+(?=[0-9])/, '');
-  
-  // Substitui vírgula por ponto para padronizar
   cleanValue = cleanValue.replace(',', '.');
-  
-  // Garante apenas um ponto decimal
   const parts = cleanValue.split('.');
   if (parts.length > 2) {
     cleanValue = parts[0] + '.' + parts.slice(1).join('');
   }
-  
   const num = parseFloat(cleanValue);
   return isNaN(num) ? 0 : num;
 }
@@ -106,13 +96,11 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   const handlePriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPriceInput(value);
-    
     const normalizedPrice = normalizePrice(value);
     onPriceChange(product.id, normalizedPrice);
   }, [product.id, onPriceChange]);
 
   const handlePriceBlur = useCallback(() => {
-    // Ao perder foco, formata o valor exibido
     setPriceInput(product.price.toString());
   }, [product.price]);
 
@@ -172,31 +160,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
         </div>
       )}
 
-      {/* Botões de Reordenação */}
-      <div className="absolute -left-2 sm:-left-3 top-1/2 -translate-y-1/2 flex flex-col space-y-0.5 opacity-100 z-10 bg-background rounded-full border shadow-sm p-0.5 sm:p-1">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-7 w-7 sm:h-8 sm:w-8 rounded-full" 
-          onClick={onMoveUp}
-          disabled={isFirst}
-          aria-label="Mover para cima"
-        >
-          <ChevronUp className="h-4 w-4" />
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-7 w-7 sm:h-8 sm:w-8 rounded-full" 
-          onClick={onMoveDown}
-          disabled={isLast}
-          aria-label="Mover para baixo"
-        >
-          <ChevronDown className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <CardHeader className="pb-2 flex flex-row items-center justify-between px-3 sm:px-6">
+      <CardHeader className="pb-2 flex flex-row items-center justify-between px-3 sm:px-4">
         {isEditingName ? (
           <Input
             value={editedName}
@@ -211,30 +175,55 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
             {product.name}
           </CardTitle>
         )}
-        <div className="flex space-x-0.5 sm:space-x-1 shrink-0">
-          {isEditingName ? (
-            <>
-              <Button variant="ghost" size="icon" onClick={handleSaveName} aria-label="Salvar" className="h-9 w-9 sm:h-10 sm:w-10">
-                <Check className="h-4 w-4 text-green-600" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleCancelEdit} aria-label="Cancelar" className="h-9 w-9 sm:h-10 sm:w-10">
-                <X className="h-4 w-4 text-red-600" />
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label="Editar nome" className="h-9 w-9 sm:h-10 sm:w-10">
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleDelete} aria-label="Deletar produto" className="h-9 w-9 sm:h-10 sm:w-10">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-        </div>
+        
+        {/* Botões de ação - Apenas Admin */}
+        {isAdmin && (
+          <div className="flex space-x-0.5 sm:space-x-1 shrink-0">
+            {isEditingName ? (
+              <>
+                <Button variant="ghost" size="icon" onClick={handleSaveName} aria-label="Salvar" className="h-9 w-9 sm:h-10 sm:w-10">
+                  <Check className="h-4 w-4 text-green-600" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleCancelEdit} aria-label="Cancelar" className="h-9 w-9 sm:h-10 sm:w-10">
+                  <X className="h-4 w-4 text-red-600" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label="Editar nome" className="h-9 w-9 sm:h-10 sm:w-10">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleDelete} aria-label="Deletar produto" className="h-9 w-9 sm:h-10 sm:w-10">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                {/* Setas de reordenação - movidas para dentro do header */}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 sm:h-10 sm:w-10" 
+                  onClick={onMoveUp}
+                  disabled={isFirst}
+                  aria-label="Mover para cima"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 sm:h-10 sm:w-10" 
+                  onClick={onMoveDown}
+                  disabled={isLast}
+                  aria-label="Mover para baixo"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
+        )}
       </CardHeader>
       
-      <CardContent className="space-y-3 px-3 sm:px-6 pb-4">
+      <CardContent className="space-y-3 px-3 sm:px-4 pb-4">
         {/* Preço */}
         <div>
           <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">
@@ -261,7 +250,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               variant="outline" 
               size="icon" 
               onClick={handleDecrementQuantity} 
-              className="h-11 w-11 sm:h-10 sm:w-10 rounded-r-none text-lg touch-manipulation"
+              className="h-11 w-11 sm:h-10 sm:w-10 rounded-r-none text-lg touch-manipulation bg-red-500 hover:bg-red-600 text-white border-red-500 hover:border-red-600"
               aria-label="Diminuir quantidade"
             >
               <Minus className="h-5 w-5" />
@@ -278,7 +267,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               variant="outline" 
               size="icon" 
               onClick={handleIncrementQuantity} 
-              className="h-11 w-11 sm:h-10 sm:w-10 rounded-l-none text-lg touch-manipulation"
+              className="h-11 w-11 sm:h-10 sm:w-10 rounded-l-none text-lg touch-manipulation bg-green-500 hover:bg-green-600 text-white border-green-500 hover:border-green-600"
               aria-label="Aumentar quantidade"
               disabled={!isAdmin && product.quantity >= product.stock}
             >
