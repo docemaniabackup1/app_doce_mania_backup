@@ -30,6 +30,30 @@ interface ProductCardProps {
   isHidden?: boolean;
 }
 
+// Função para normalizar preço (aceita ponto e vírgula)
+function normalizePrice(value: string): number {
+  // Remove espaços e caracteres inválidos, mantém apenas números, ponto e vírgula
+  let cleanValue = value.trim();
+  
+  // Se vazio, retorna 0
+  if (cleanValue === '') return 0;
+  
+  // Remove zeros à esquerda antes do número (ex: 02,19 -> 2,19)
+  cleanValue = cleanValue.replace(/^0+(?=[0-9])/, '');
+  
+  // Substitui vírgula por ponto para padronizar
+  cleanValue = cleanValue.replace(',', '.');
+  
+  // Garante apenas um ponto decimal
+  const parts = cleanValue.split('.');
+  if (parts.length > 2) {
+    cleanValue = parts[0] + '.' + parts.slice(1).join('');
+  }
+  
+  const num = parseFloat(cleanValue);
+  return isNaN(num) ? 0 : num;
+}
+
 const ProductCard: React.FC<ProductCardProps> = memo(({
   product,
   isAdmin,
@@ -47,6 +71,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
 }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(product.name);
+  const [priceInput, setPriceInput] = useState(product.price.toString());
 
   const handleEditClick = useCallback(() => {
     setEditedName(product.name);
@@ -80,15 +105,16 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
 
   const handlePriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value === '') {
-      onPriceChange(product.id, 0);
-    } else {
-      const newPrice = parseFloat(value);
-      if (!isNaN(newPrice) && newPrice >= 0) {
-        onPriceChange(product.id, newPrice);
-      }
-    }
+    setPriceInput(value);
+    
+    const normalizedPrice = normalizePrice(value);
+    onPriceChange(product.id, normalizedPrice);
   }, [product.id, onPriceChange]);
+
+  const handlePriceBlur = useCallback(() => {
+    // Ao perder foco, formata o valor exibido
+    setPriceInput(product.price.toString());
+  }, [product.price]);
 
   const handleQuantityInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -215,12 +241,13 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
             Preço
           </label>
           <Input
-            type="number"
-            value={product.price}
+            type="text"
+            inputMode="decimal"
+            value={priceInput}
             onChange={handlePriceChange}
-            min={0}
-            step="0.01"
+            onBlur={handlePriceBlur}
             className="h-11 sm:h-10 text-base"
+            placeholder="0.00"
           />
         </div>
 

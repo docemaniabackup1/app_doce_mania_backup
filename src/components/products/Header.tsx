@@ -19,19 +19,25 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ products, isAdmin, onAdminChange }) => {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<string>('--:--');
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
+    // Função para atualizar a hora
+    const updateTime = () => {
+      setCurrentTime(new Date().toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }));
+    };
+
+    // Atualiza imediatamente
+    updateTime();
+    
+    // Configura o intervalo
+    const timer = setInterval(updateTime, 1000);
+    
     return () => clearInterval(timer);
   }, []);
-
-  const formattedTime = currentTime.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 
   const totalOrderValue = products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
   const totalQuantity = products.reduce((sum, product) => sum + product.quantity, 0);
@@ -42,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({ products, isAdmin, onAdminChange }) => 
         <div className="flex items-center justify-between">
           {/* Esquerda - Hora */}
           <div className="text-sm sm:text-base font-medium text-muted-foreground min-w-[50px] sm:min-w-[60px]">
-            {formattedTime}
+            {currentTime}
           </div>
 
           {/* Centro - Totais */}
