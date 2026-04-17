@@ -39,7 +39,7 @@ const Header: React.FC<HeaderProps> = ({ products, isAdmin, onAdminChange }) => 
 
   return (
     <header 
-      className="fixed top-0 left-0 right-0 z-[9999] bg-white border-b border-gray-200 shadow-lg"
+      className="fixed top-0 left-0 right-0 z-[9999] bg-gray-800 border-b border-gray-700 shadow-lg"
       style={{ 
         position: 'fixed',
         top: 0,
@@ -50,21 +50,21 @@ const Header: React.FC<HeaderProps> = ({ products, isAdmin, onAdminChange }) => 
       <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
         <div className="flex items-center justify-between">
           {/* Esquerda - Hora */}
-          <div className="text-sm sm:text-base font-medium text-gray-500 min-w-[50px] sm:min-w-[60px]">
+          <div className="text-sm sm:text-base font-medium text-gray-400 min-w-[50px] sm:min-w-[60px]">
             {currentTime}
           </div>
 
           {/* Centro - Totais */}
           <div className="flex items-center justify-center gap-2 sm:gap-3">
             <div 
-              className="bg-green-500 text-black px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-base sm:text-lg font-bold shadow-sm min-w-[90px] text-center"
-              style={{ backgroundColor: '#22c55e' }}
+              className="text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-base sm:text-lg font-bold shadow-sm min-w-[90px] text-center"
+              style={{ backgroundColor: '#16a34a' }}
             >
               R$ {totalOrderValue.toFixed(2)}
             </div>
             <div 
-              className="bg-blue-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-base sm:text-lg font-bold shadow-sm min-w-[50px] text-center"
-              style={{ backgroundColor: '#3b82f6' }}
+              className="text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-base sm:text-lg font-bold shadow-sm min-w-[50px] text-center"
+              style={{ backgroundColor: '#2563eb' }}
             >
               {totalQuantity}
             </div>
@@ -80,7 +80,7 @@ const Header: React.FC<HeaderProps> = ({ products, isAdmin, onAdminChange }) => 
         {/* Badge de Admin Logado */}
         {isAdmin && (
           <div className="flex justify-center mt-1.5 sm:mt-2">
-            <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">
+            <span className="bg-green-900 text-green-300 text-xs font-medium px-2 py-0.5 rounded-full">
               🔓 Modo Admin
             </span>
           </div>

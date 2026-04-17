@@ -262,14 +262,14 @@ export default function Home() {
   const headerPadding = isAdmin ? 'pt-32 sm:pt-28' : 'pt-24 sm:pt-20';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <Header products={products} isAdmin={isAdmin} onAdminChange={handleAdminChange} />
       
       <main className={`w-full max-w-4xl mx-auto px-3 sm:px-4 pb-24 ${headerPadding}`}>
         {/* Área do Cupom */}
-        <div className="mb-4 p-3 sm:p-4 border rounded-lg bg-white shadow-sm">
+        <div className="mb-4 p-3 sm:p-4 border border-gray-700 rounded-lg bg-gray-800 shadow-sm">
           <div className="mb-3">
-            <Label htmlFor="client-name" className="block text-sm font-medium text-gray-600 mb-1">
+            <Label htmlFor="client-name" className="block text-sm font-medium text-gray-300 mb-1">
               Nome do Cliente *
             </Label>
             <Input
@@ -278,7 +278,7 @@ export default function Home() {
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="Digite o nome (obrigatório)"
-              className="h-11 sm:h-10 text-base"
+              className="h-11 sm:h-10 text-base bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
               maxLength={50}
             />
           </div>
@@ -287,7 +287,7 @@ export default function Home() {
             readOnly
             value={allProductsText}
             rows={10}
-            className="mb-3 font-mono bg-gray-100 text-gray-600 resize-none overflow-x-hidden text-xs"
+            className="mb-3 font-mono bg-gray-700 text-gray-300 border-gray-600 resize-none overflow-x-hidden text-xs"
           />
           
           <div className="flex gap-2 flex-col sm:flex-row">
@@ -320,11 +320,11 @@ export default function Home() {
 
         {/* Lista de Produtos */}
         {loading ? (
-          <div className="text-center text-gray-500 py-8">
+          <div className="text-center text-gray-400 py-8">
             Carregando produtos...
           </div>
         ) : visibleCount === 0 ? (
-          <div className="text-center text-gray-500 py-8">
+          <div className="text-center text-gray-400 py-8">
             {isAdmin ? 'Nenhum produto cadastrado' : 'Nenhum produto disponível'}
           </div>
         ) : (

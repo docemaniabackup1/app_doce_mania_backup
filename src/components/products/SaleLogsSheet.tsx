@@ -141,13 +141,13 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <button
-          className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-all touch-manipulation"
+          className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-all touch-manipulation"
           aria-label="Histórico de vendas"
         >
           <History className="h-5 w-5" />
         </button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-[85vh] sm:h-[80vh] sm:max-w-lg sm:m-auto sm:rounded-lg">
+      <SheetContent side="bottom" className="h-[85vh] sm:h-[80vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white">
         <SheetHeader className="pb-2">
           <SheetTitle className="text-lg">Histórico de Vendas</SheetTitle>
         </SheetHeader>
@@ -165,12 +165,12 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
               {logs.map((log) => (
                 <div
                   key={log.id}
-                  className="bg-card border rounded-lg p-3"
+                  className="bg-gray-700 border border-gray-600 rounded-lg p-3"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate">{log.product_name}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="font-semibold text-sm truncate text-white">{log.product_name}</p>
+                      <p className="text-xs text-gray-400">
                         {formatDate(log.created_at)}
                       </p>
                     </div>
@@ -222,22 +222,22 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                   {editingId === log.id ? (
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       <div>
-                        <label className="text-xs text-muted-foreground">Qtd</label>
+                        <label className="text-xs text-gray-400">Qtd</label>
                         <Input
                           type="number"
                           value={editQuantity}
                           onChange={(e) => setEditQuantity(parseInt(e.target.value) || 0)}
-                          className="h-9"
+                          className="h-9 bg-gray-600 border-gray-500 text-white"
                           min={0}
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-muted-foreground">Preço</label>
+                        <label className="text-xs text-gray-400">Preço</label>
                         <Input
                           type="number"
                           value={editPrice}
                           onChange={(e) => setEditPrice(parseFloat(e.target.value) || 0)}
-                          className="h-9"
+                          className="h-9 bg-gray-600 border-gray-500 text-white"
                           min={0}
                           step="0.01"
                         />
@@ -245,20 +245,20 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                     </div>
                   ) : (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
+                      <span className="text-gray-400">
                         {log.quantity}x R$ {log.unit_price.toFixed(2)}
                       </span>
-                      <span className="font-semibold text-green-600">
+                      <span className="font-semibold text-green-500">
                         R$ {log.total_price.toFixed(2)}
                       </span>
                     </div>
                   )}
                   
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t">
-                    <p className="text-xs text-muted-foreground truncate">
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-600">
+                    <p className="text-xs text-gray-400 truncate">
                       {log.client_name}
                     </p>
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <span className="text-xs font-medium text-gray-400">
                       {getPaymentLabel(log.payment_type)}
                     </span>
                   </div>

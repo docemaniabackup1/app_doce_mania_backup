@@ -48,15 +48,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(product.name);
   const [priceInput, setPriceInput] = useState(product.price.toString());
-  const [localQuantity, setLocalQuantity] = useState(product.quantity);
-  const [hasChanges, setHasChanges] = useState(false);
-
-  // Sincronizar quantidade local com a do produto quando não há mudanças pendentes
-  React.useEffect(() => {
-    if (!hasChanges) {
-      setLocalQuantity(product.quantity);
-    }
-  }, [product.quantity, hasChanges]);
 
   const handleEditClick = useCallback(() => {
     setEditedName(product.name);
@@ -75,31 +66,20 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
     setIsEditingName(false);
   }, [product.name]);
 
+  // Decrementar quantidade - ATUALIZA IMEDIATAMENTE
   const handleDecrementQuantity = useCallback(() => {
-    if (localQuantity > 0) {
-      const newQuantity = localQuantity - 1;
-      setLocalQuantity(newQuantity);
-      setHasChanges(true);
-      // Debounce: só atualiza após 1 segundo sem mudanças
-      setTimeout(() => {
-        onQuantityChange(product.id, newQuantity);
-        setHasChanges(false);
-      }, 1000);
+    if (product.quantity > 0) {
+      onQuantityChange(product.id, product.quantity - 1);
     }
-  }, [localQuantity, product.id, onQuantityChange]);
+  }, [product.quantity, product.id, onQuantityChange]);
 
+  // Incrementar quantidade - ATUALIZA IMEDIATAMENTE
   const handleIncrementQuantity = useCallback(() => {
-    if (!isAdmin && localQuantity >= product.stock) {
+    if (!isAdmin && product.quantity >= product.stock) {
       return;
     }
-    const newQuantity = localQuantity + 1;
-    setLocalQuantity(newQuantity);
-    setHasChanges(true);
-    setTimeout(() => {
-      onQuantityChange(product.id, newQuantity);
-      setHasChanges(false);
-    }, 1000);
-  }, [localQuantity, product.stock, isAdmin, product.id, onQuantityChange]);
+    onQuantityChange(product.id, product.quantity + 1);
+  }, [product.quantity, product.stock, isAdmin, product.id, onQuantityChange]);
 
   const handlePriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -125,16 +105,13 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   const handleQuantityInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === '') {
-      setLocalQuantity(0);
       onQuantityChange(product.id, 0);
     } else {
       const newQuantity = parseInt(value, 10);
       if (!isNaN(newQuantity) && newQuantity >= 0) {
         if (!isAdmin && newQuantity > product.stock) {
-          setLocalQuantity(product.stock);
           onQuantityChange(product.id, product.stock);
         } else {
-          setLocalQuantity(newQuantity);
           onQuantityChange(product.id, newQuantity);
         }
       }
@@ -162,20 +139,22 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
     onDelete(product.id);
   }, [product.id, onDelete]);
 
-  const isLowStock = product.stock <= 5 && product.stock > 0;
-  const isOutOfStock = product.stock === 0;
+  // Estoque disponível = estoque - quantidade selecionada
+  const availableStock = product.stock - product.quantity;
+  const isLowStock = availableStock <= 5 && availableStock > 0;
+  const isOutOfStock = availableStock === 0 || product.stock === 0;
 
   if (isHidden) {
     return null;
   }
 
   return (
-    <Card className={`w-full relative group touch-manipulation ${
-      isOutOfStock ? 'opacity-50 border-red-300' : 
-      isLowStock ? 'border-yellow-400 bg-yellow-50/50' : ''
+    <Card className={`w-full relative group touch-manipulation bg-gray-800 border-gray-700 ${
+      isOutOfStock ? 'opacity-50 border-red-500' : 
+      isLowStock ? 'border-yellow-500' : ''
     }`}>
       {isPending && (
-        <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-20 rounded-lg">
+        <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center z-20 rounded-lg">
           <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
         </div>
       )}
@@ -186,12 +165,12 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
             value={editedName}
             onChange={(e) => setEditedName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="text-base font-semibold mr-2 h-9 sm:h-10"
+            className="text-base font-semibold mr-2 h-9 sm:h-10 bg-gray-700 border-gray-600 text-white"
             autoFocus
             maxLength={100}
           />
         ) : (
-          <CardTitle className="text-base sm:text-lg font-semibold truncate pr-2" title={product.name}>
+          <CardTitle className="text-base sm:text-lg font-semibold truncate pr-2 text-white" title={product.name}>
             {product.name}
           </CardTitle>
         )}
@@ -200,25 +179,25 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
           <div className="flex space-x-0.5 sm:space-x-1 shrink-0">
             {isEditingName ? (
               <>
-                <Button variant="ghost" size="icon" onClick={handleSaveName} aria-label="Salvar" className="h-9 w-9 sm:h-10 sm:w-10">
-                  <Check className="h-4 w-4 text-green-600" />
+                <Button variant="ghost" size="icon" onClick={handleSaveName} aria-label="Salvar" className="h-9 w-9 sm:h-10 sm:w-10 hover:bg-gray-700">
+                  <Check className="h-4 w-4 text-green-500" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={handleCancelEdit} aria-label="Cancelar" className="h-9 w-9 sm:h-10 sm:w-10">
-                  <X className="h-4 w-4 text-red-600" />
+                <Button variant="ghost" size="icon" onClick={handleCancelEdit} aria-label="Cancelar" className="h-9 w-9 sm:h-10 sm:w-10 hover:bg-gray-700">
+                  <X className="h-4 w-4 text-red-500" />
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label="Editar nome" className="h-9 w-9 sm:h-10 sm:w-10">
+                <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label="Editar nome" className="h-9 w-9 sm:h-10 sm:w-10 hover:bg-gray-700 text-gray-300">
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={handleDelete} aria-label="Deletar produto" className="h-9 w-9 sm:h-10 sm:w-10">
+                <Button variant="ghost" size="icon" onClick={handleDelete} aria-label="Deletar produto" className="h-9 w-9 sm:h-10 sm:w-10 hover:bg-gray-700 text-gray-300">
                   <Trash2 className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-9 w-9 sm:h-10 sm:w-10" 
+                  className="h-9 w-9 sm:h-10 sm:w-10 hover:bg-gray-700 text-gray-300" 
                   onClick={onMoveUp}
                   disabled={isFirst}
                   aria-label="Mover para cima"
@@ -228,7 +207,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-9 w-9 sm:h-10 sm:w-10" 
+                  className="h-9 w-9 sm:h-10 sm:w-10 hover:bg-gray-700 text-gray-300" 
                   onClick={onMoveDown}
                   disabled={isLast}
                   aria-label="Mover para baixo"
@@ -243,7 +222,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
       
       <CardContent className="space-y-3 px-3 sm:px-4 pb-4">
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">
             Preço
           </label>
           <Input
@@ -252,39 +231,39 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
             value={priceInput}
             onChange={handlePriceChange}
             onBlur={handlePriceBlur}
-            className="h-11 sm:h-10 text-base"
+            className="h-11 sm:h-10 text-base bg-gray-700 border-gray-600 text-white"
             placeholder="0.00"
           />
         </div>
 
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">
             Quantidade {isAdmin && '(venda)'}
           </label>
           <div className="flex items-center">
             <button
               type="button"
               onClick={handleDecrementQuantity}
-              className="h-11 w-11 sm:h-10 sm:w-10 flex items-center justify-center rounded-l-md text-lg touch-manipulation bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold transition-colors"
-              style={{ backgroundColor: '#ef4444' }}
+              className="h-11 w-11 sm:h-10 sm:w-10 flex items-center justify-center rounded-l-md text-lg touch-manipulation text-white font-bold transition-all active:scale-95"
+              style={{ backgroundColor: '#dc2626' }}
               aria-label="Diminuir quantidade"
             >
               <Minus className="h-5 w-5" />
             </button>
             <Input
               type="number"
-              value={localQuantity}
+              value={product.quantity}
               onChange={handleQuantityInputChange}
-              className="flex-1 text-center rounded-none border-x-0 h-11 sm:h-10 text-base"
+              className="flex-1 text-center rounded-none border-x-0 h-11 sm:h-10 text-base bg-gray-700 border-gray-600 text-white"
               min={0}
               max={!isAdmin ? product.stock : undefined}
             />
             <button
               type="button"
               onClick={handleIncrementQuantity}
-              disabled={!isAdmin && localQuantity >= product.stock}
-              className="h-11 w-11 sm:h-10 sm:w-10 flex items-center justify-center rounded-r-md text-lg touch-manipulation bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#22c55e' }}
+              disabled={!isAdmin && product.quantity >= product.stock}
+              className="h-11 w-11 sm:h-10 sm:w-10 flex items-center justify-center rounded-r-md text-lg touch-manipulation text-white font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#16a34a' }}
               aria-label="Aumentar quantidade"
             >
               <Plus className="h-5 w-5" />
@@ -294,28 +273,28 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
 
         {isAdmin && (
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">
               <Package className="h-3 w-3 inline mr-1" />
-              Estoque
+              Estoque Total
             </label>
             <Input
               type="number"
               value={product.stock}
               onChange={handleStockChange}
               min={0}
-              className="h-11 sm:h-10 text-base"
+              className="h-11 sm:h-10 text-base bg-gray-700 border-gray-600 text-white"
             />
           </div>
         )}
 
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">Disponível:</span>
+          <span className="text-gray-400">Disponível:</span>
           <span className={`font-medium ${
-            isOutOfStock ? 'text-red-600' : 
-            isLowStock ? 'text-yellow-600' : 
-            'text-green-600'
+            isOutOfStock ? 'text-red-500' : 
+            isLowStock ? 'text-yellow-500' : 
+            'text-green-500'
           }`}>
-            {product.stock} un.
+            {availableStock} un.
           </span>
         </div>
       </CardContent>

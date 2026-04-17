@@ -85,8 +85,8 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAdminChange }) => {
         onClick={handleOpenDialog}
         className={`p-2 rounded-full transition-all touch-manipulation ${
           isAdmin 
-            ? 'bg-green-500 text-white' 
-            : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+            ? 'bg-green-600 text-white' 
+            : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
         }`}
         aria-label={isAdmin ? 'Logout de Admin' : 'Login de Admin'}
       >

@@ -115,24 +115,24 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-md w-[95vw] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md w-[95vw] max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700 text-white">
           <DialogHeader>
-            <DialogTitle>Confirmar Venda</DialogTitle>
+            <DialogTitle className="text-white">Confirmar Venda</DialogTitle>
           </DialogHeader>
           
           <div className="py-4">
             {/* Cliente */}
-            <div className="mb-4 p-3 bg-muted rounded-lg">
-              <span className="text-sm text-muted-foreground">Cliente:</span>
-              <p className="font-semibold">{clientName}</p>
+            <div className="mb-4 p-3 bg-gray-700 rounded-lg">
+              <span className="text-sm text-gray-400">Cliente:</span>
+              <p className="font-semibold text-white">{clientName}</p>
             </div>
 
             {/* Itens */}
             <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
               {productsToSell.map(p => (
                 <div key={p.id} className="flex justify-between text-sm">
-                  <span className="truncate pr-2">{p.name}</span>
-                  <span className="text-muted-foreground shrink-0">
+                  <span className="truncate pr-2 text-gray-300">{p.name}</span>
+                  <span className="text-gray-400 shrink-0">
                     {p.quantity}x R$ {p.price.toFixed(2)} = R$ {(p.quantity * p.price).toFixed(2)}
                   </span>
                 </div>
@@ -140,32 +140,32 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
             </div>
             
             {/* Totais */}
-            <div className="border-t pt-3 space-y-2 mb-4">
+            <div className="border-t border-gray-600 pt-3 space-y-2 mb-4">
               <div className="flex justify-between text-sm">
-                <span>Total de itens:</span>
-                <span className="font-medium">{totalItems}</span>
+                <span className="text-gray-300">Total de itens:</span>
+                <span className="font-medium text-white">{totalItems}</span>
               </div>
               <div className="flex justify-between text-lg font-bold">
-                <span>Total:</span>
-                <span className="text-green-600">R$ {totalValue.toFixed(2)}</span>
+                <span className="text-white">Total:</span>
+                <span className="text-green-500">R$ {totalValue.toFixed(2)}</span>
               </div>
             </div>
 
             {/* Forma de Pagamento */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Forma de Pagamento</label>
+              <label className="block text-sm font-medium mb-2 text-gray-300">Forma de Pagamento</label>
               
               {/* À Vista */}
               <div className="mb-2">
-                <p className="text-xs text-muted-foreground mb-1">À Vista</p>
+                <p className="text-xs text-gray-400 mb-1">À Vista</p>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setPaymentType('dinheiro')}
                     className={`flex-1 py-2 px-3 rounded-md border-2 text-sm font-medium transition-all ${
                       paymentType === 'dinheiro'
-                        ? 'border-green-500 bg-green-50 text-green-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-green-500 bg-green-900/50 text-green-400'
+                        : 'border-gray-600 hover:border-gray-500 text-gray-300'
                     }`}
                   >
                     💵 Dinheiro
@@ -175,8 +175,8 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
                     onClick={() => setPaymentType('pix')}
                     className={`flex-1 py-2 px-3 rounded-md border-2 text-sm font-medium transition-all ${
                       paymentType === 'pix'
-                        ? 'border-green-500 bg-green-50 text-green-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-green-500 bg-green-900/50 text-green-400'
+                        : 'border-gray-600 hover:border-gray-500 text-gray-300'
                     }`}
                   >
                     📱 Pix
@@ -186,15 +186,15 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
 
               {/* A Prazo */}
               <div>
-                <p className="text-xs text-muted-foreground mb-1">A Prazo</p>
+                <p className="text-xs text-gray-400 mb-1">A Prazo</p>
                 <div className="grid grid-cols-4 gap-2">
                   <button
                     type="button"
                     onClick={() => setPaymentType('7d')}
                     className={`py-2 px-2 rounded-md border-2 text-sm font-medium transition-all ${
                       paymentType === '7d'
-                        ? 'border-orange-500 bg-orange-50 text-orange-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-orange-500 bg-orange-900/50 text-orange-400'
+                        : 'border-gray-600 hover:border-gray-500 text-gray-300'
                     }`}
                   >
                     7d
@@ -204,8 +204,8 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
                     onClick={() => setPaymentType('14d')}
                     className={`py-2 px-2 rounded-md border-2 text-sm font-medium transition-all ${
                       paymentType === '14d'
-                        ? 'border-orange-500 bg-orange-50 text-orange-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-orange-500 bg-orange-900/50 text-orange-400'
+                        : 'border-gray-600 hover:border-gray-500 text-gray-300'
                     }`}
                   >
                     14d
@@ -215,8 +215,8 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
                     onClick={() => setPaymentType('21d')}
                     className={`py-2 px-2 rounded-md border-2 text-sm font-medium transition-all ${
                       paymentType === '21d'
-                        ? 'border-orange-500 bg-orange-50 text-orange-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-orange-500 bg-orange-900/50 text-orange-400'
+                        : 'border-gray-600 hover:border-gray-500 text-gray-300'
                     }`}
                   >
                     21d
@@ -226,8 +226,8 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
                     onClick={() => setPaymentType('30d')}
                     className={`py-2 px-2 rounded-md border-2 text-sm font-medium transition-all ${
                       paymentType === '30d'
-                        ? 'border-orange-500 bg-orange-50 text-orange-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-orange-500 bg-orange-900/50 text-orange-400'
+                        : 'border-gray-600 hover:border-gray-500 text-gray-300'
                     }`}
                   >
                     30d
@@ -241,7 +241,7 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
               <Button
                 variant="outline"
                 onClick={() => setIsOpen(false)}
-                className="flex-1 h-11 sm:h-10"
+                className="flex-1 h-11 sm:h-10 border-gray-600 text-gray-300 hover:bg-gray-700"
                 disabled={isLoading}
               >
                 Cancelar
@@ -262,11 +262,11 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
       </Dialog>
 
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent className="sm:max-w-xs w-[90vw] text-center">
+        <DialogContent className="sm:max-w-xs w-[90vw] text-center bg-gray-800 border-gray-700 text-white">
           <div className="py-6 flex flex-col items-center">
             <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
             <p className="text-lg font-semibold">Venda Registrada!</p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-gray-400 mt-1">
               {clientName} - {getPaymentLabel()}
             </p>
           </div>
