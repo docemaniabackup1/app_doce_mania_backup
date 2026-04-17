@@ -116,6 +116,9 @@ export async function POST(request: Request) {
     const itemsCount = items.reduce((sum: number, item: { quantity: number }) => 
       sum + item.quantity, 0);
 
+    // Verificar se é venda a prazo
+    const isPrazo = ['7d', '14d', '21d', '30d'].includes(paymentType);
+    
     // Criar a venda
     const { data: sale, error: saleError } = await supabase
       .from('sales')
@@ -125,6 +128,8 @@ export async function POST(request: Request) {
         payment_type: paymentType || 'dinheiro',
         coupon_text: couponText || '',
         items_count: itemsCount,
+        status: isPrazo ? 'pending' : 'received',
+        received_at: isPrazo ? null : new Date().toISOString(),
       }])
       .select()
       .single();
@@ -179,6 +184,39 @@ export async function POST(request: Request) {
       sale: sale,
       message: 'Venda registrada com sucesso!',
     });
+  } catch (err) {
+    console.error('[API] Unexpected error:', err);
+    return errorResponse('Erro interno do servidor', 500);
+  }
+}
+
+// PUT - Marcar venda como recebida
+export async function PUT(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id || !isValidUUID(id)) {
+      return errorResponse('ID inválido', 400);
+    }
+
+    // Atualizar status da venda para recebida
+    const { data: sale, error } = await supabase
+      .from('sales')
+      .update({ 
+        status: 'received', 
+        received_at: new Date().toISOString() 
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[API] Error updating sale:', error.message);
+      return errorResponse('Erro ao atualizar venda', 500);
+    }
+
+    return successResponse({ success: true, sale });
   } catch (err) {
     console.error('[API] Unexpected error:', err);
     return errorResponse('Erro interno do servidor', 500);

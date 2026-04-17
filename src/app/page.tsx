@@ -286,7 +286,7 @@ export default function Home() {
           <Textarea
             readOnly
             value={allProductsText}
-            rows={16}
+            rows={Math.max(16, allProductsText.split('\n').length + 1)}
             className="mb-3 font-mono bg-slate-700/50 text-slate-300 border-slate-600 resize-none overflow-y-auto overflow-x-hidden text-xs rounded-lg"
           />
           

@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, Trash2, Receipt, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { History, Trash2, Receipt, X, ChevronDown, ChevronUp, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SaleItem {
@@ -36,6 +36,8 @@ interface Sale {
   coupon_text: string;
   items_count: number;
   created_at: string;
+  status?: 'pending' | 'received';
+  received_at?: string | null;
   items: SaleItem[];
 }
 
@@ -97,6 +99,27 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
       }
     } catch {
       toast.error('Erro ao excluir');
+    }
+  }, [isAdmin]);
+
+  const handleMarkAsReceived = useCallback(async (id: string) => {
+    if (!isAdmin) {
+      toast.error('Apenas admin pode marcar como recebida');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/sales?id=${id}`, { method: 'PUT' });
+      if (response.ok) {
+        setSales(prev => prev.map(sale => 
+          sale.id === id 
+            ? { ...sale, status: 'received' as const, received_at: new Date().toISOString() }
+            : sale
+        ));
+        toast.success('Venda marcada como recebida!');
+      }
+    } catch {
+      toast.error('Erro ao atualizar venda');
     }
   }, [isAdmin]);
 
@@ -172,11 +195,21 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     return paymentLabels[type] || type;
   };
 
-  const getPaymentBadgeStyle = (type: string) => {
-    const isVista = type === 'dinheiro' || type === 'pix';
-    return isVista 
-      ? { bg: 'bg-emerald-900/60', text: 'text-emerald-300', border: 'border-emerald-700' }
-      : { bg: 'bg-amber-900/60', text: 'text-amber-300', border: 'border-amber-700' };
+  const isVista = (type: string) => type === 'dinheiro' || type === 'pix';
+
+  const getPaymentBadgeStyle = (type: string, status?: string) => {
+    const vista = isVista(type);
+    
+    if (vista) {
+      return { bg: 'bg-emerald-900/60', text: 'text-emerald-300', border: 'border-emerald-700' };
+    }
+    
+    // A prazo
+    if (status === 'received') {
+      return { bg: 'bg-green-900/60', text: 'text-green-300', border: 'border-green-700' };
+    }
+    
+    return { bg: 'bg-amber-900/60', text: 'text-amber-300', border: 'border-amber-700' };
   };
 
   const showCouponImage = useCallback((sale: Sale) => {
@@ -208,13 +241,28 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     setCouponImage(imageData);
   }, []);
 
-  // Calcular total filtrado
-  const filteredTotal = useMemo(() => {
-    return filteredSales.reduce((sum, sale) => sum + sale.total_value, 0);
-  }, [filteredSales]);
+  // Calcular totais
+  const totals = useMemo(() => {
+    const total = filteredSales.reduce((sum, sale) => sum + sale.total_value, 0);
+    const vista = filteredSales
+      .filter(s => isVista(s.payment_type))
+      .reduce((sum, sale) => sum + sale.total_value, 0);
+    const prazo = filteredSales
+      .filter(s => !isVista(s.payment_type))
+      .reduce((sum, sale) => sum + sale.total_value, 0);
+    const prazoReceived = filteredSales
+      .filter(s => !isVista(s.payment_type) && s.status === 'received')
+      .reduce((sum, sale) => sum + sale.total_value, 0);
+    const prazoPending = filteredSales
+      .filter(s => !isVista(s.payment_type) && s.status !== 'received')
+      .reduce((sum, sale) => sum + sale.total_value, 0);
+    
+    const count = filteredSales.length;
+    const vistaCount = filteredSales.filter(s => isVista(s.payment_type)).length;
+    const prazoCount = filteredSales.filter(s => !isVista(s.payment_type)).length;
 
-  // Contar vendas filtradas
-  const filteredCount = filteredSales.length;
+    return { total, vista, prazo, prazoReceived, prazoPending, count, vistaCount, prazoCount };
+  }, [filteredSales]);
 
   return (
     <>
@@ -229,7 +277,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
         </SheetTrigger>
         <SheetContent 
           side="bottom" 
-          className="h-[90vh] sm:h-[85vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white"
+          className="h-[90vh] sm:h-[85vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white z-[9999]"
           onInteractOutside={(e) => e.preventDefault()}
         >
           <div className="flex items-center justify-between mb-2">
@@ -238,7 +286,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
             </SheetHeader>
             <SheetClose asChild>
               <button
-                className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
+                className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors z-10"
                 aria-label="Fechar"
               >
                 <X className="h-5 w-5" />
@@ -282,18 +330,49 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
             </Button>
           </div>
 
-          {/* Card de Total */}
+          {/* Card de Totais */}
           <div className="bg-gradient-to-r from-gray-700/80 to-gray-600/60 rounded-xl p-4 my-3 border border-gray-600 shadow-lg">
-            <div className="flex justify-between items-center mb-1">
+            <div className="flex justify-between items-center mb-2">
               <span className="text-sm text-gray-400 font-medium">{getFilterLabel()}</span>
-              <span className="text-xs text-gray-500">{filteredCount} venda{filteredCount !== 1 ? 's' : ''}</span>
+              <span className="text-xs text-gray-500">{totals.count} venda{totals.count !== 1 ? 's' : ''}</span>
             </div>
-            <div className="text-3xl font-bold text-green-400">
-              R$ {filteredTotal.toFixed(2)}
+            
+            {/* Total Principal */}
+            <div className="text-3xl font-bold text-green-400 mb-3">
+              R$ {totals.total.toFixed(2)}
+            </div>
+            
+            {/* Detalhes À Vista e A Prazo */}
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="bg-gray-800/50 rounded-lg p-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                  <span className="text-gray-400 text-xs">À Vista</span>
+                </div>
+                <div className="text-emerald-300 font-semibold">
+                  R$ {totals.vista.toFixed(2)}
+                </div>
+                <div className="text-gray-500 text-xs">{totals.vistaCount} venda{totals.vistaCount !== 1 ? 's' : ''}</div>
+              </div>
+              <div className="bg-gray-800/50 rounded-lg p-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                  <span className="text-gray-400 text-xs">A Prazo</span>
+                </div>
+                <div className="text-amber-300 font-semibold">
+                  R$ {totals.prazo.toFixed(2)}
+                </div>
+                <div className="text-gray-500 text-xs">{totals.prazoCount} venda{totals.prazoCount !== 1 ? 's' : ''}</div>
+                {totals.prazoPending > 0 && (
+                  <div className="text-orange-400 text-xs mt-1">
+                    Pendente: R$ {totals.prazoPending.toFixed(2)}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <ScrollArea className="h-[calc(100%-180px)] mt-2">
+          <ScrollArea className="h-[calc(100%-260px)] mt-2">
             {loading ? (
               <div className="text-center py-8 text-gray-400">
                 Carregando...
@@ -305,20 +384,33 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
             ) : (
               <div className="space-y-3 pb-4">
                 {filteredSales.map((sale) => {
-                  const badgeStyle = getPaymentBadgeStyle(sale.payment_type);
+                  const badgeStyle = getPaymentBadgeStyle(sale.payment_type, sale.status);
                   const isExpanded = expandedSale === sale.id;
+                  const isPrazoSale = !isVista(sale.payment_type);
+                  const isPending = isPrazoSale && sale.status !== 'received';
                   
                   return (
                     <div
                       key={sale.id}
-                      className="bg-gray-700/80 border border-gray-600 rounded-xl overflow-hidden shadow-lg"
+                      className={`bg-gray-700/80 border rounded-xl overflow-hidden shadow-lg ${
+                        isPending ? 'border-amber-600/50' : 'border-gray-600'
+                      }`}
                     >
                       {/* Card Principal */}
                       <div className="p-4">
                         {/* Header: Nome e Data */}
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-lg text-white truncate">{sale.client_name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-lg text-white truncate">{sale.client_name}</p>
+                              {isPrazoSale && (
+                                sale.status === 'received' ? (
+                                  <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
+                                ) : (
+                                  <Clock className="h-4 w-4 text-amber-400 shrink-0" />
+                                )
+                              )}
+                            </div>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs px-2 py-0.5 bg-gray-600 rounded text-gray-300">
                                 {formatDateShort(sale.created_at)}
@@ -344,6 +436,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                         <div className="flex items-center justify-between mb-3">
                           <span className={`text-xs font-medium px-3 py-1 rounded-full border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}>
                             {getPaymentLabel(sale.payment_type)}
+                            {isPrazoSale && (sale.status === 'received' ? ' ✓' : ' ⏳')}
                           </span>
                           <div className="text-right">
                             <span className="text-2xl font-bold text-green-400">
@@ -382,6 +475,17 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                             <Receipt className="h-4 w-4 mr-1" />
                             Cupom
                           </Button>
+                          {/* Botão de Receber - Apenas para vendas a prazo pendentes */}
+                          {isAdmin && isPending && (
+                            <Button
+                              size="sm"
+                              className="h-9 bg-green-600 hover:bg-green-700 text-white px-4"
+                              onClick={() => handleMarkAsReceived(sale.id)}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Receber
+                            </Button>
+                          )}
                         </div>
                       </div>
 
@@ -412,7 +516,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
 
       {/* Modal de Cupom usando Dialog */}
       <Dialog open={!!couponImage} onOpenChange={() => setCouponImage(null)}>
-        <DialogContent className="sm:max-w-sm w-[95vw] bg-gray-800 border-gray-700 text-white flex flex-col items-center">
+        <DialogContent className="sm:max-w-sm w-[95vw] bg-gray-800 border-gray-700 text-white flex flex-col items-center z-[10001]">
           <div className="w-full flex justify-center mb-4">
             <Button
               onClick={() => setCouponImage(null)}

@@ -37,6 +37,8 @@ export interface Sale {
   coupon_text: string;
   items_count: number;
   created_at: string;
+  status?: 'pending' | 'received';
+  received_at?: string | null;
 }
 
 export interface SaleItem {
