@@ -22,12 +22,22 @@ interface SaleLog {
   unit_price: number;
   total_price: number;
   client_name: string;
+  payment_type?: string;
   created_at: string;
 }
 
 interface SaleLogsSheetProps {
   isAdmin: boolean;
 }
+
+const paymentLabels: Record<string, string> = {
+  dinheiro: '💵 Dinheiro',
+  pix: '📱 Pix',
+  '7d': '📅 7 dias',
+  '14d': '📅 14 dias',
+  '21d': '📅 21 dias',
+  '30d': '📅 30 dias',
+};
 
 const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
   const [logs, setLogs] = useState<SaleLog[]>([]);
@@ -120,6 +130,11 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const getPaymentLabel = (type?: string) => {
+    if (!type) return '💵 Dinheiro';
+    return paymentLabels[type] || type;
   };
 
   return (
@@ -239,11 +254,14 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                     </div>
                   )}
                   
-                  {log.client_name && (
-                    <p className="text-xs text-muted-foreground mt-1 truncate">
-                      Cliente: {log.client_name}
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t">
+                    <p className="text-xs text-muted-foreground truncate">
+                      {log.client_name}
                     </p>
-                  )}
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {getPaymentLabel(log.payment_type)}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

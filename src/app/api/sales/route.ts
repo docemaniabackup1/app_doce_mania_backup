@@ -47,7 +47,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { items, clientName } = body;
+    const { items, clientName, paymentType } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return errorResponse('Nenhum item para registrar', 400);
@@ -93,6 +93,7 @@ export async function POST(request: Request) {
       unit_price: item.price,
       total_price: item.price * item.quantity,
       client_name: clientName || 'Não identificado',
+      payment_type: paymentType || 'dinheiro',
     }));
 
     // Inserir logs de venda
@@ -141,6 +142,7 @@ export async function POST(request: Request) {
       message: 'Venda registrada com sucesso!',
       totalItems: items.length,
       totalValue: items.reduce((sum: number, item: { price: number; quantity: number }) => sum + item.price * item.quantity, 0),
+      paymentType,
     });
   } catch (err) {
     console.error('[API] Unexpected error:', err);

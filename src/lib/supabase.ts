@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Singleton pattern para evitar múltiplas instâncias
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -8,7 +7,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Configuração otimizada do cliente
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: false,
@@ -21,7 +19,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Tipos tipados
 export interface Product {
   id: string;
   name: string;
@@ -40,10 +37,10 @@ export interface SaleLog {
   unit_price: number;
   total_price: number;
   client_name: string;
+  payment_type?: string;
   created_at: string;
 }
 
-// Validação de tipos
 export function isValidProduct(data: unknown): data is Product {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;

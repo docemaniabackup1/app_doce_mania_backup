@@ -30,20 +30,6 @@ interface ProductCardProps {
   isHidden?: boolean;
 }
 
-// Função para normalizar preço (aceita ponto e vírgula)
-function normalizePrice(value: string): number {
-  let cleanValue = value.trim();
-  if (cleanValue === '') return 0;
-  cleanValue = cleanValue.replace(/^0+(?=[0-9])/, '');
-  cleanValue = cleanValue.replace(',', '.');
-  const parts = cleanValue.split('.');
-  if (parts.length > 2) {
-    cleanValue = parts[0] + '.' + parts.slice(1).join('');
-  }
-  const num = parseFloat(cleanValue);
-  return isNaN(num) ? 0 : num;
-}
-
 const ProductCard: React.FC<ProductCardProps> = memo(({
   product,
   isAdmin,
@@ -62,6 +48,15 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(product.name);
   const [priceInput, setPriceInput] = useState(product.price.toString());
+  const [localQuantity, setLocalQuantity] = useState(product.quantity);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Sincronizar quantidade local com a do produto quando não há mudanças pendentes
+  React.useEffect(() => {
+    if (!hasChanges) {
+      setLocalQuantity(product.quantity);
+    }
+  }, [product.quantity, hasChanges]);
 
   const handleEditClick = useCallback(() => {
     setEditedName(product.name);
@@ -81,23 +76,46 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   }, [product.name]);
 
   const handleDecrementQuantity = useCallback(() => {
-    if (product.quantity > 0) {
-      onQuantityChange(product.id, product.quantity - 1);
+    if (localQuantity > 0) {
+      const newQuantity = localQuantity - 1;
+      setLocalQuantity(newQuantity);
+      setHasChanges(true);
+      // Debounce: só atualiza após 1 segundo sem mudanças
+      setTimeout(() => {
+        onQuantityChange(product.id, newQuantity);
+        setHasChanges(false);
+      }, 1000);
     }
-  }, [product.id, product.quantity, onQuantityChange]);
+  }, [localQuantity, product.id, onQuantityChange]);
 
   const handleIncrementQuantity = useCallback(() => {
-    if (!isAdmin && product.quantity >= product.stock) {
+    if (!isAdmin && localQuantity >= product.stock) {
       return;
     }
-    onQuantityChange(product.id, product.quantity + 1);
-  }, [product.id, product.quantity, product.stock, isAdmin, onQuantityChange]);
+    const newQuantity = localQuantity + 1;
+    setLocalQuantity(newQuantity);
+    setHasChanges(true);
+    setTimeout(() => {
+      onQuantityChange(product.id, newQuantity);
+      setHasChanges(false);
+    }, 1000);
+  }, [localQuantity, product.stock, isAdmin, product.id, onQuantityChange]);
 
   const handlePriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPriceInput(value);
-    const normalizedPrice = normalizePrice(value);
-    onPriceChange(product.id, normalizedPrice);
+    // Normaliza o preço
+    let cleanValue = value.trim();
+    if (cleanValue === '') {
+      onPriceChange(product.id, 0);
+      return;
+    }
+    cleanValue = cleanValue.replace(/^0+(?=[0-9])/, '');
+    cleanValue = cleanValue.replace(',', '.');
+    const num = parseFloat(cleanValue);
+    if (!isNaN(num)) {
+      onPriceChange(product.id, num);
+    }
   }, [product.id, onPriceChange]);
 
   const handlePriceBlur = useCallback(() => {
@@ -107,13 +125,16 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   const handleQuantityInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === '') {
+      setLocalQuantity(0);
       onQuantityChange(product.id, 0);
     } else {
       const newQuantity = parseInt(value, 10);
       if (!isNaN(newQuantity) && newQuantity >= 0) {
         if (!isAdmin && newQuantity > product.stock) {
+          setLocalQuantity(product.stock);
           onQuantityChange(product.id, product.stock);
         } else {
+          setLocalQuantity(newQuantity);
           onQuantityChange(product.id, newQuantity);
         }
       }
@@ -153,10 +174,9 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
       isOutOfStock ? 'opacity-50 border-red-300' : 
       isLowStock ? 'border-yellow-400 bg-yellow-50/50' : ''
     }`}>
-      {/* Indicador de loading */}
       {isPending && (
-        <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-20 rounded-lg">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-20 rounded-lg">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
         </div>
       )}
 
@@ -176,7 +196,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
           </CardTitle>
         )}
         
-        {/* Botões de ação - Apenas Admin */}
         {isAdmin && (
           <div className="flex space-x-0.5 sm:space-x-1 shrink-0">
             {isEditingName ? (
@@ -196,7 +215,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
                 <Button variant="ghost" size="icon" onClick={handleDelete} aria-label="Deletar produto" className="h-9 w-9 sm:h-10 sm:w-10">
                   <Trash2 className="h-4 w-4" />
                 </Button>
-                {/* Setas de reordenação - movidas para dentro do header */}
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -224,9 +242,8 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
       </CardHeader>
       
       <CardContent className="space-y-3 px-3 sm:px-4 pb-4">
-        {/* Preço */}
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
             Preço
           </label>
           <Input
@@ -240,46 +257,44 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
           />
         </div>
 
-        {/* Quantidade na venda */}
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
             Quantidade {isAdmin && '(venda)'}
           </label>
           <div className="flex items-center">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={handleDecrementQuantity} 
-              className="h-11 w-11 sm:h-10 sm:w-10 rounded-r-none text-lg touch-manipulation bg-red-500 hover:bg-red-600 text-white border-red-500 hover:border-red-600"
+            <button
+              type="button"
+              onClick={handleDecrementQuantity}
+              className="h-11 w-11 sm:h-10 sm:w-10 flex items-center justify-center rounded-l-md text-lg touch-manipulation bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold transition-colors"
+              style={{ backgroundColor: '#ef4444' }}
               aria-label="Diminuir quantidade"
             >
               <Minus className="h-5 w-5" />
-            </Button>
+            </button>
             <Input
               type="number"
-              value={product.quantity}
+              value={localQuantity}
               onChange={handleQuantityInputChange}
               className="flex-1 text-center rounded-none border-x-0 h-11 sm:h-10 text-base"
               min={0}
               max={!isAdmin ? product.stock : undefined}
             />
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={handleIncrementQuantity} 
-              className="h-11 w-11 sm:h-10 sm:w-10 rounded-l-none text-lg touch-manipulation bg-green-500 hover:bg-green-600 text-white border-green-500 hover:border-green-600"
+            <button
+              type="button"
+              onClick={handleIncrementQuantity}
+              disabled={!isAdmin && localQuantity >= product.stock}
+              className="h-11 w-11 sm:h-10 sm:w-10 flex items-center justify-center rounded-r-md text-lg touch-manipulation bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#22c55e' }}
               aria-label="Aumentar quantidade"
-              disabled={!isAdmin && product.quantity >= product.stock}
             >
               <Plus className="h-5 w-5" />
-            </Button>
+            </button>
           </div>
         </div>
 
-        {/* Estoque (apenas admin) */}
         {isAdmin && (
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-500 mb-1">
               <Package className="h-3 w-3 inline mr-1" />
               Estoque
             </label>
@@ -293,9 +308,8 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
           </div>
         )}
 
-        {/* Indicador de estoque */}
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Disponível:</span>
+          <span className="text-gray-500">Disponível:</span>
           <span className={`font-medium ${
             isOutOfStock ? 'text-red-600' : 
             isLowStock ? 'text-yellow-600' : 

@@ -231,7 +231,6 @@ export default function Home() {
   // Memoizar cards
   const productCards = useMemo(() => 
     products.map((product, index) => {
-      // Se não é admin e não tem estoque, esconder
       const isHidden = !isAdmin && product.stock < 1;
       
       return (
@@ -259,26 +258,26 @@ export default function Home() {
   // Contar produtos visíveis
   const visibleCount = products.filter(p => isAdmin || p.stock > 0).length;
 
-  // Calcular padding top baseado no header
-  const headerPadding = isAdmin ? 'pt-28 sm:pt-24' : 'pt-20 sm:pt-20';
+  // Padding top baseado no header (admin tem badge extra)
+  const headerPadding = isAdmin ? 'pt-32 sm:pt-28' : 'pt-24 sm:pt-20';
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <Header products={products} isAdmin={isAdmin} onAdminChange={handleAdminChange} />
       
-      <main className={`container mx-auto px-3 sm:px-4 pb-24 max-w-4xl ${headerPadding}`}>
+      <main className={`w-full max-w-4xl mx-auto px-3 sm:px-4 pb-24 ${headerPadding}`}>
         {/* Área do Cupom */}
-        <div className="mb-4 p-3 sm:p-4 border rounded-lg bg-card shadow-sm">
+        <div className="mb-4 p-3 sm:p-4 border rounded-lg bg-white shadow-sm">
           <div className="mb-3">
-            <Label htmlFor="client-name" className="block text-sm font-medium text-muted-foreground mb-1">
-              Nome do Cliente
+            <Label htmlFor="client-name" className="block text-sm font-medium text-gray-600 mb-1">
+              Nome do Cliente *
             </Label>
             <Input
               id="client-name"
               type="text"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
-              placeholder="Digite o nome"
+              placeholder="Digite o nome (obrigatório)"
               className="h-11 sm:h-10 text-base"
               maxLength={50}
             />
@@ -288,7 +287,7 @@ export default function Home() {
             readOnly
             value={allProductsText}
             rows={10}
-            className="mb-3 font-mono bg-muted text-muted-foreground resize-none overflow-x-hidden text-xs"
+            className="mb-3 font-mono bg-gray-100 text-gray-600 resize-none overflow-x-hidden text-xs"
           />
           
           <div className="flex gap-2 flex-col sm:flex-row">
@@ -321,11 +320,11 @@ export default function Home() {
 
         {/* Lista de Produtos */}
         {loading ? (
-          <div className="text-center text-muted-foreground py-8">
+          <div className="text-center text-gray-500 py-8">
             Carregando produtos...
           </div>
         ) : visibleCount === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
+          <div className="text-center text-gray-500 py-8">
             {isAdmin ? 'Nenhum produto cadastrado' : 'Nenhum produto disponível'}
           </div>
         ) : (

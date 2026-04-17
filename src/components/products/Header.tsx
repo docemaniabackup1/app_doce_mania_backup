@@ -38,20 +38,34 @@ const Header: React.FC<HeaderProps> = ({ products, isAdmin, onAdminChange }) => 
   const totalQuantity = products.reduce((sum, product) => sum + product.quantity, 0);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[100] bg-background border-b border-border shadow-md">
-      <div className="container mx-auto max-w-4xl px-3 sm:px-4 py-2 sm:py-3">
+    <header 
+      className="fixed top-0 left-0 right-0 z-[9999] bg-white border-b border-gray-200 shadow-lg"
+      style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+      }}
+    >
+      <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
         <div className="flex items-center justify-between">
           {/* Esquerda - Hora */}
-          <div className="text-sm sm:text-base font-medium text-muted-foreground min-w-[50px] sm:min-w-[60px]">
+          <div className="text-sm sm:text-base font-medium text-gray-500 min-w-[50px] sm:min-w-[60px]">
             {currentTime}
           </div>
 
           {/* Centro - Totais */}
           <div className="flex items-center justify-center gap-2 sm:gap-3">
-            <div className="bg-green-500 text-black px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-base sm:text-lg font-bold shadow-sm min-w-[90px] text-center">
+            <div 
+              className="bg-green-500 text-black px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-base sm:text-lg font-bold shadow-sm min-w-[90px] text-center"
+              style={{ backgroundColor: '#22c55e' }}
+            >
               R$ {totalOrderValue.toFixed(2)}
             </div>
-            <div className="bg-blue-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-base sm:text-lg font-bold shadow-sm min-w-[50px] text-center">
+            <div 
+              className="bg-blue-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-base sm:text-lg font-bold shadow-sm min-w-[50px] text-center"
+              style={{ backgroundColor: '#3b82f6' }}
+            >
               {totalQuantity}
             </div>
           </div>
