@@ -233,6 +233,17 @@ export async function DELETE(request: Request) {
       return errorResponse('ID inválido', 400);
     }
 
+    // Verificar se a venda existe primeiro
+    const { data: existingSale, error: fetchError } = await supabase
+      .from('sales')
+      .select('id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !existingSale) {
+      return errorResponse('Venda não encontrada', 404);
+    }
+
     // Buscar itens da venda para restaurar estoque
     const { data: items } = await supabase
       .from('sale_items')
@@ -240,12 +251,12 @@ export async function DELETE(request: Request) {
       .eq('sale_id', id);
 
     // Restaurar estoque
-    if (items) {
+    if (items && items.length > 0) {
       for (const item of items) {
         if (item.product_id) {
           const { data: product } = await supabase
             .from('products')
-            .select('stock')
+            .select('id, stock')
             .eq('id', item.product_id)
             .single();
           

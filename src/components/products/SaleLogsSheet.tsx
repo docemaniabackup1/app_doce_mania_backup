@@ -14,7 +14,7 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { History, Trash2, Receipt, X, ChevronDown, ChevronUp, CheckCircle, Clock } from 'lucide-react';
+import { History, Trash2, Receipt, X, CheckCircle, Clock, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SaleItem {
@@ -60,8 +60,9 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [couponImage, setCouponImage] = useState<string | null>(null);
-  const [expandedSale, setExpandedSale] = useState<string | null>(null);
+  const [couponText, setCouponText] = useState<string>('');
   const [filter, setFilter] = useState<FilterType>('dia');
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const fetchSales = useCallback(async () => {
     setLoading(true);
@@ -90,16 +91,32 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
       return;
     }
 
+    // Impedir múltiplos cliques
+    if (deletingIds.has(id)) {
+      return;
+    }
+
+    setDeletingIds(prev => new Set(prev).add(id));
+
     try {
       const response = await fetch(`/api/sales?id=${id}`, { method: 'DELETE' });
       if (response.ok) {
         setSales(prev => prev.filter(sale => sale.id !== id));
         toast.success('Venda excluída e estoque restaurado');
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Erro ao excluir');
       }
     } catch {
       toast.error('Erro ao excluir');
+    } finally {
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
-  }, [isAdmin]);
+  }, [isAdmin, deletingIds]);
 
   const handleMarkAsReceived = useCallback(async (id: string) => {
     if (!isAdmin) {
@@ -238,7 +255,18 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
 
     const imageData = canvas.toDataURL('image/png');
     setCouponImage(imageData);
+    setCouponText(sale.coupon_text);
   }, []);
+
+  const handleCopyCoupon = useCallback(() => {
+    navigator.clipboard.writeText(couponText)
+      .then(() => {
+        toast.success('Cupom copiado!');
+      })
+      .catch(() => {
+        toast.error('Erro ao copiar');
+      });
+  }, [couponText]);
 
   // Calcular totais
   const totals = useMemo(() => {
@@ -381,9 +409,9 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
               <div className="space-y-3 pb-4">
                 {filteredSales.map((sale) => {
                   const badgeStyle = getPaymentBadgeStyle(sale.payment_type, sale.status);
-                  const isExpanded = expandedSale === sale.id;
                   const isPrazoSale = !isVista(sale.payment_type);
                   const isPending = isPrazoSale && sale.status !== 'received';
+                  const isDeleting = deletingIds.has(sale.id);
                   
                   return (
                     <div
@@ -422,8 +450,9 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                               size="icon"
                               className="h-7 w-7 hover:bg-red-900/50 shrink-0"
                               onClick={() => handleDelete(sale.id)}
+                              disabled={isDeleting}
                             >
-                              <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                              <Trash2 className={`h-3.5 w-3.5 text-red-400 ${isDeleting ? 'opacity-50' : ''}`} />
                             </Button>
                           )}
                         </div>
@@ -447,25 +476,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 min-w-[80px] h-8 border-gray-600 text-gray-300 hover:bg-gray-600 text-xs"
-                            onClick={() => setExpandedSale(isExpanded ? null : sale.id)}
-                          >
-                            {isExpanded ? (
-                              <>
-                                <ChevronUp className="h-3 w-3 mr-1" />
-                                Ocultar
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown className="h-3 w-3 mr-1" />
-                                Detalhes
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 border-gray-600 text-gray-300 hover:bg-gray-600 px-3 text-xs"
+                            className="flex-1 h-8 border-gray-600 text-gray-300 hover:bg-gray-600 px-3 text-xs"
                             onClick={() => showCouponImage(sale)}
                           >
                             <Receipt className="h-3 w-3 mr-1" />
@@ -484,23 +495,6 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                           )}
                         </div>
                       </div>
-
-                      {/* Detalhes Expandidos */}
-                      {isExpanded && sale.items && (
-                        <div className="border-t border-gray-600 bg-gray-800/50 p-2">
-                          <p className="text-xs text-gray-400 mb-1 font-medium">ITENS DA VENDA</p>
-                          <div className="space-y-0.5">
-                            {sale.items.map((item) => (
-                              <div key={item.id} className="flex justify-between text-xs py-0.5 border-b border-gray-700/50 last:border-0">
-                                <span className="text-gray-300 truncate flex-1">{item.product_name}</span>
-                                <span className="text-gray-400 ml-2">
-                                  {item.quantity}x R$ {item.unit_price.toFixed(2)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -511,14 +505,21 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
       </Sheet>
 
       {/* Modal de Cupom usando Dialog */}
-      <Dialog open={!!couponImage} onOpenChange={() => setCouponImage(null)}>
+      <Dialog open={!!couponImage} onOpenChange={() => { setCouponImage(null); setCouponText(''); }}>
         <DialogContent className="sm:max-w-sm w-[95vw] bg-gray-800 border-gray-700 text-white flex flex-col items-center z-[10001]">
-          <div className="w-full flex justify-center mb-4">
+          <div className="w-full flex justify-center gap-3 mb-4">
             <Button
-              onClick={() => setCouponImage(null)}
-              className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium flex items-center gap-2"
+              onClick={handleCopyCoupon}
+              className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium flex items-center gap-2"
             >
-              <X className="h-5 w-5" />
+              <Copy className="h-4 w-4" />
+              Copiar
+            </Button>
+            <Button
+              onClick={() => { setCouponImage(null); setCouponText(''); }}
+              className="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium flex items-center gap-2"
+            >
+              <X className="h-4 w-4" />
               Fechar
             </Button>
           </div>
