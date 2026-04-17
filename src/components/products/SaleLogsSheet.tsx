@@ -8,9 +8,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, Trash2, Receipt, TrendingUp, Calendar, X, ChevronRight } from 'lucide-react';
+import { History, Trash2, TrendingUp, Calendar, X, ChevronRight, ShoppingBag, Hash, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SaleItem {
@@ -41,12 +40,21 @@ interface SaleLogsSheetProps {
 type FilterPeriod = 'day' | 'week' | 'month' | 'total';
 
 const paymentLabels: Record<string, string> = {
-  dinheiro: '💵 Dinheiro',
-  pix: '📱 Pix',
-  '7d': '📅 7 dias',
-  '14d': '📅 14 dias',
-  '21d': '📅 21 dias',
-  '30d': '📅 30 dias',
+  dinheiro: 'Dinheiro',
+  pix: 'Pix',
+  '7d': '7 dias',
+  '14d': '14 dias',
+  '21d': '21 dias',
+  '30d': '30 dias',
+};
+
+const paymentIcons: Record<string, string> = {
+  dinheiro: '💵',
+  pix: '📱',
+  '7d': '📅',
+  '14d': '📅',
+  '21d': '📅',
+  '30d': '📅',
 };
 
 const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
@@ -87,7 +95,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
       const response = await fetch(`/api/sales?id=${id}`, { method: 'DELETE' });
       if (response.ok) {
         setSales(prev => prev.filter(sale => sale.id !== id));
-        toast.success('Venda excluída e estoque restaurado');
+        toast.success('Venda excluída!');
       }
     } catch {
       toast.error('Erro ao excluir');
@@ -102,13 +110,13 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
         return new Date(now.getFullYear(), now.getMonth(), now.getDate());
       case 'week':
         const dayOfWeek = now.getDay();
-        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Ajuste para semana começar na segunda
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         return new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff);
       case 'month':
         return new Date(now.getFullYear(), now.getMonth(), 1);
       case 'total':
       default:
-        return new Date(2020, 0, 1); // Data muito antiga para pegar tudo
+        return new Date(2020, 0, 1);
     }
   }, []);
 
@@ -147,9 +155,9 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     });
   };
 
-  const getPaymentLabel = (type?: string) => {
-    if (!type) return '💵 Dinheiro';
-    return paymentLabels[type] || type;
+  const getPaymentIcon = (type?: string) => {
+    if (!type) return '💵';
+    return paymentIcons[type] || '💵';
   };
 
   const getPaymentBadgeStyle = (type: string) => {
@@ -194,7 +202,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
 
   // Labels dos períodos
   const periodLabels: Record<FilterPeriod, string> = {
-    day: 'Hoje',
+    day: 'Dia',
     week: 'Semana',
     month: 'Mês',
     total: 'Total',
@@ -217,16 +225,16 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
           </SheetHeader>
           
           {/* Filtros de Período */}
-          <div className="px-4 py-3 border-b border-slate-700/50">
-            <div className="flex bg-slate-800 rounded-xl p-1">
+          <div className="px-4 py-3">
+            <div className="grid grid-cols-4 gap-1.5 bg-slate-800 p-1.5 rounded-xl">
               {(['day', 'week', 'month', 'total'] as FilterPeriod[]).map((period) => (
                 <button
                   key={period}
                   onClick={() => setFilterPeriod(period)}
-                  className={`flex-1 py-2 px-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`py-2.5 px-2 rounded-lg text-sm font-semibold transition-all ${
                     filterPeriod === period
                       ? 'bg-emerald-500 text-white shadow-lg'
-                      : 'text-slate-400 hover:text-white'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-700'
                   }`}
                 >
                   {periodLabels[period]}
@@ -236,39 +244,50 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
           </div>
 
           {/* Card de Total em Destaque */}
-          <div className="px-4 py-3">
-            <div className="bg-gradient-to-br from-emerald-600/30 to-emerald-800/20 rounded-2xl p-4 border border-emerald-500/30 shadow-xl">
+          <div className="px-4 pb-3">
+            <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl p-4 shadow-xl">
               {/* Total Principal */}
-              <div className="text-center mb-4">
+              <div className="text-center pb-3 border-b border-white/20">
                 <div className="flex items-center justify-center gap-2 mb-1">
-                  <TrendingUp className="h-5 w-5 text-emerald-400" />
-                  <span className="text-xs text-emerald-300 uppercase tracking-widest font-medium">Total {periodLabels[filterPeriod]}</span>
+                  <TrendingUp className="h-4 w-4 text-emerald-100" />
+                  <span className="text-xs text-emerald-100 uppercase tracking-widest font-medium">
+                    Total {periodLabels[filterPeriod]}
+                  </span>
                 </div>
-                <p className="text-4xl font-bold text-white">
+                <p className="text-4xl font-bold text-white tracking-tight">
                   R$ {stats.totalValue.toFixed(2)}
                 </p>
               </div>
               
               {/* Stats Grid */}
-              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-emerald-500/20">
+              <div className="grid grid-cols-3 gap-2 pt-3">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{stats.totalSales}</p>
-                  <p className="text-[10px] text-emerald-300/70 uppercase tracking-wider">Vendas</p>
+                  <div className="flex items-center justify-center gap-1 mb-0.5">
+                    <ShoppingBag className="h-3.5 w-3.5 text-emerald-200" />
+                    <span className="text-2xl font-bold text-white">{stats.totalSales}</span>
+                  </div>
+                  <p className="text-[10px] text-emerald-100 uppercase tracking-wider">Vendas</p>
                 </div>
-                <div className="text-center border-x border-emerald-500/20">
-                  <p className="text-2xl font-bold text-white">{stats.totalItems}</p>
-                  <p className="text-[10px] text-emerald-300/70 uppercase tracking-wider">Itens</p>
+                <div className="text-center border-x border-white/20">
+                  <div className="flex items-center justify-center gap-1 mb-0.5">
+                    <Hash className="h-3.5 w-3.5 text-emerald-200" />
+                    <span className="text-2xl font-bold text-white">{stats.totalItems}</span>
+                  </div>
+                  <p className="text-[10px] text-emerald-100 uppercase tracking-wider">Itens</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-white">R$ {stats.averageTicket.toFixed(0)}</p>
-                  <p className="text-[10px] text-emerald-300/70 uppercase tracking-wider">Ticket Médio</p>
+                  <div className="flex items-center justify-center gap-1 mb-0.5">
+                    <DollarSign className="h-3.5 w-3.5 text-emerald-200" />
+                    <span className="text-2xl font-bold text-white">{stats.averageTicket.toFixed(0)}</span>
+                  </div>
+                  <p className="text-[10px] text-emerald-100 uppercase tracking-wider">Média</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Lista de Vendas */}
-          <ScrollArea className="h-[calc(100%-280px)] px-4">
+          <ScrollArea className="h-[calc(100%-260px)] px-4">
             {loading ? (
               <div className="text-center py-8 text-slate-400">
                 Carregando...
@@ -276,7 +295,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
             ) : filteredSales.length === 0 ? (
               <div className="text-center py-12 text-slate-500">
                 <Calendar className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p>Nenhuma venda neste período</p>
+                <p className="text-sm">Nenhuma venda neste período</p>
               </div>
             ) : (
               <div className="space-y-2 pb-4">
@@ -286,36 +305,38 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                   return (
                     <div
                       key={sale.id}
-                      className="bg-slate-800/80 border border-slate-700/50 rounded-xl overflow-hidden"
+                      className="bg-slate-800/80 border border-slate-700/50 rounded-xl overflow-hidden active:bg-slate-700/50 transition-colors"
                     >
                       <div className="p-3 flex items-center justify-between">
                         {/* Info da Venda */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-bold text-white truncate">{sale.client_name}</p>
-                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}>
-                              {sale.payment_type === 'dinheiro' ? '💰' : sale.payment_type === 'pix' ? '📱' : '📅'} {sale.payment_type.toUpperCase()}
-                            </span>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-slate-400">
                             <span>{formatDateShort(sale.created_at)}</span>
-                            <span>•</span>
+                            <span className="text-slate-600">•</span>
                             <span>{formatTime(sale.created_at)}</span>
-                            <span>•</span>
+                            <span className="text-slate-600">•</span>
                             <span>{sale.items_count} itens</span>
                           </div>
                         </div>
                         
-                        {/* Valor e Ações */}
+                        {/* Pagamento e Valor */}
                         <div className="flex items-center gap-2 shrink-0 ml-2">
-                          <span className="text-lg font-bold text-emerald-400">
-                            R$ {sale.total_value.toFixed(2)}
-                          </span>
+                          <div className="text-right">
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${badgeStyle.bg} ${badgeStyle.text}`}>
+                              {getPaymentIcon(sale.payment_type)} {sale.payment_type?.toUpperCase() || 'DINHEIRO'}
+                            </span>
+                            <p className="text-lg font-bold text-white mt-0.5">
+                              R$ {sale.total_value.toFixed(2)}
+                            </p>
+                          </div>
                           <button
                             onClick={() => showCouponImage(sale)}
-                            className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+                            className="p-2 rounded-lg hover:bg-slate-600 text-slate-400 hover:text-white transition-all"
                           >
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-5 w-5" />
                           </button>
                           {isAdmin && (
                             <button
