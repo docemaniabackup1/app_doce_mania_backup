@@ -118,5 +118,30 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
   }
+}
+
+/* Safe area para dispositivos com notch */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Melhor toque em mobile */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Scroll suave */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Esconder scrollbar mas manter scroll */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }

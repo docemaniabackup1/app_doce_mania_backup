@@ -7,11 +7,12 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  SheetClose,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, Trash2, Receipt, Calendar, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { History, Trash2, Receipt, Calendar, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SaleItem {
@@ -53,7 +54,6 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [couponImage, setCouponImage] = useState<string | null>(null);
-  const [expandedSale, setExpandedSale] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<string>('');
 
   const fetchSales = useCallback(async () => {
@@ -101,17 +101,6 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
       return saleDate === dateFilter;
     });
   }, [sales, dateFilter]);
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   const formatDateShort = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -170,6 +159,10 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     setCouponImage(imageData);
   }, []);
 
+  const closeCouponModal = useCallback(() => {
+    setCouponImage(null);
+  }, []);
+
   // Calcular total do dia filtrado
   const dailyTotal = useMemo(() => {
     return filteredSales.reduce((sum, sale) => sum + sale.total_value, 0);
@@ -186,26 +179,26 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
             <History className="h-5 w-5" />
           </button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="h-[90vh] sm:h-[85vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white">
+        <SheetContent side="bottom" className="h-[90vh] sm:h-[85vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white px-3">
           <SheetHeader className="pb-2">
             <SheetTitle className="text-lg text-white">Histórico de Vendas</SheetTitle>
           </SheetHeader>
           
           {/* Filtro por data */}
           <div className="flex items-center gap-2 py-3 border-b border-gray-700">
-            <Calendar className="h-4 w-4 text-gray-400" />
+            <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
             <Input
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="h-9 bg-gray-700 border-gray-600 text-white"
+              className="h-9 bg-gray-700 border-gray-600 text-white text-sm"
             />
             {dateFilter && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setDateFilter('')}
-                className="h-9 px-2 text-gray-400 hover:text-white"
+                className="h-9 px-2 text-gray-400 hover:text-white shrink-0"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -214,7 +207,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
 
           {/* Total do dia */}
           {filteredSales.length > 0 && (
-            <div className="flex justify-between items-center py-2 px-1 bg-gray-700/50 rounded-lg my-2">
+            <div className="flex justify-between items-center py-2 px-3 bg-gray-700/50 rounded-lg my-2">
               <span className="text-sm text-gray-400">
                 {dateFilter ? 'Total filtrado' : 'Total do dia'}
               </span>
@@ -234,104 +227,64 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                 {dateFilter ? 'Nenhuma venda nesta data' : 'Nenhuma venda registrada'}
               </div>
             ) : (
-              <div className="space-y-3 pb-4">
+              <div className="space-y-2 pb-4">
                 {filteredSales.map((sale) => {
                   const badgeStyle = getPaymentBadgeStyle(sale.payment_type);
-                  const isExpanded = expandedSale === sale.id;
                   
                   return (
                     <div
                       key={sale.id}
-                      className="bg-gray-700/80 border border-gray-600 rounded-xl overflow-hidden shadow-lg"
+                      className="bg-gray-700/80 border border-gray-600 rounded-xl overflow-hidden shadow-lg p-3"
                     >
-                      {/* Card Principal */}
-                      <div className="p-4">
-                        {/* Header: Nome e Data */}
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-lg text-white truncate">{sale.client_name}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs px-2 py-0.5 bg-gray-600 rounded text-gray-300">
-                                {formatDateShort(sale.created_at)}
-                              </span>
-                              <span className="text-xs text-gray-400">
-                                {formatTime(sale.created_at)}
-                              </span>
-                            </div>
+                      {/* Card Simplificado - Sem detalhes de itens */}
+                      <div className="flex items-start justify-between gap-2">
+                        {/* Nome e Data */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-base text-white truncate">{sale.client_name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs px-2 py-0.5 bg-gray-600 rounded text-gray-300">
+                              {formatDateShort(sale.created_at)}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {formatTime(sale.created_at)}
+                            </span>
                           </div>
+                        </div>
+                        
+                        {/* Botões de ação */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 hover:bg-gray-600 text-gray-300"
+                            onClick={() => showCouponImage(sale)}
+                          >
+                            <Receipt className="h-4 w-4" />
+                          </Button>
                           {isAdmin && (
                             <Button
                               variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 hover:bg-red-900/50 shrink-0"
+                              size="sm"
+                              className="h-8 w-8 p-0 hover:bg-red-900/50 text-red-400"
                               onClick={() => handleDelete(sale.id)}
                             >
-                              <Trash2 className="h-4 w-4 text-red-400" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           )}
                         </div>
-                        
-                        {/* Valor e Pagamento */}
-                        <div className="flex items-center justify-between mb-3">
-                          <span className={`text-xs font-medium px-3 py-1 rounded-full border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}>
-                            {getPaymentLabel(sale.payment_type)}
+                      </div>
+                      
+                      {/* Valor e Pagamento */}
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-600/50">
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}>
+                          {getPaymentLabel(sale.payment_type)}
+                        </span>
+                        <div className="text-right">
+                          <span className="text-xl font-bold text-green-400">
+                            R$ {sale.total_value.toFixed(2)}
                           </span>
-                          <div className="text-right">
-                            <span className="text-2xl font-bold text-green-400">
-                              R$ {sale.total_value.toFixed(2)}
-                            </span>
-                            <p className="text-xs text-gray-400">{sale.items_count} itens</p>
-                          </div>
-                        </div>
-
-                        {/* Botões de Ação */}
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-9 border-gray-600 text-gray-300 hover:bg-gray-600"
-                            onClick={() => setExpandedSale(isExpanded ? null : sale.id)}
-                          >
-                            {isExpanded ? (
-                              <>
-                                <ChevronUp className="h-4 w-4 mr-1" />
-                                Ocultar
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown className="h-4 w-4 mr-1" />
-                                Detalhes
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-9 border-gray-600 text-gray-300 hover:bg-gray-600 px-4"
-                            onClick={() => showCouponImage(sale)}
-                          >
-                            <Receipt className="h-4 w-4 mr-1" />
-                            Cupom
-                          </Button>
                         </div>
                       </div>
-
-                      {/* Detalhes Expandidos */}
-                      {isExpanded && sale.items && (
-                        <div className="border-t border-gray-600 bg-gray-800/50 p-3">
-                          <p className="text-xs text-gray-400 mb-2 font-medium">ITENS DA VENDA</p>
-                          <div className="space-y-1">
-                            {sale.items.map((item) => (
-                              <div key={item.id} className="flex justify-between text-sm py-1 border-b border-gray-700/50 last:border-0">
-                                <span className="text-gray-300 truncate flex-1">{item.product_name}</span>
-                                <span className="text-gray-400 ml-2">
-                                  {item.quantity}x R$ {item.unit_price.toFixed(2)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -341,28 +294,28 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
         </SheetContent>
       </Sheet>
 
-      {/* Modal de Cupom - Corrigido para responsividade */}
+      {/* Modal de Cupom - Com botão fechar funcional */}
       {couponImage && (
         <div 
-          className="fixed inset-0 z-[10000] bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setCouponImage(null)}
+          className="fixed inset-0 z-[10000] bg-black/90 flex flex-col items-center justify-center p-4"
+          onClick={closeCouponModal}
         >
-          <div className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center">
-            {/* Botão fechar no topo, fora da imagem */}
-            <button
-              className="mb-3 px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm font-medium hover:bg-gray-700 transition-colors flex items-center gap-2"
-              onClick={() => setCouponImage(null)}
-            >
-              <X className="h-4 w-4" />
-              Fechar
-            </button>
-            <img 
-              src={couponImage} 
-              alt="Cupom" 
-              className="max-w-full max-h-[calc(90vh-60px)] rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
+          <button
+            className="mb-4 px-5 py-2.5 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm font-medium hover:bg-gray-700 transition-colors flex items-center gap-2 z-[10001]"
+            onClick={(e) => {
+              e.stopPropagation();
+              closeCouponModal();
+            }}
+          >
+            <X className="h-4 w-4" />
+            Fechar
+          </button>
+          <img 
+            src={couponImage} 
+            alt="Cupom" 
+            className="max-w-full max-h-[calc(90vh-80px)] rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </>

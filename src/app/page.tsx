@@ -258,16 +258,13 @@ export default function Home() {
   // Contar produtos visíveis
   const visibleCount = products.filter(p => isAdmin || p.stock > 0).length;
 
-  // Padding top baseado no header (admin tem badge extra)
-  const headerPadding = isAdmin ? 'pt-[88px] sm:pt-[76px]' : 'pt-[68px] sm:pt-[60px]';
-
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-slate-900 overflow-x-hidden">
       <Header products={products} isAdmin={isAdmin} onAdminChange={handleAdminChange} />
       
-      <main className={`w-full max-w-4xl mx-auto px-3 sm:px-4 pb-24 ${headerPadding}`}>
+      <main className="w-full max-w-4xl mx-auto px-3 sm:px-4 pt-[72px] sm:pt-[64px] pb-20">
         {/* Área do Cupom */}
-        <div className="mb-4 p-4 border border-slate-700 rounded-xl bg-slate-800 shadow-lg">
+        <div className="mb-4 p-3 sm:p-4 border border-slate-700 rounded-xl bg-slate-800 shadow-lg">
           <div className="mb-3">
             <Label htmlFor="client-name" className="block text-sm font-medium text-slate-400 mb-1.5">
               Nome do Cliente *
@@ -278,7 +275,7 @@ export default function Home() {
               value={clientName}
               onChange={(e) => setClientName(e.target.value.toUpperCase())}
               placeholder="Digite o nome (obrigatório)"
-              className="h-12 text-base bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 uppercase font-medium"
+              className="h-11 text-base bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 uppercase font-medium"
               maxLength={50}
             />
           </div>
@@ -286,15 +283,16 @@ export default function Home() {
           <Textarea
             readOnly
             value={allProductsText}
-            rows={10}
+            rows={8}
             className="mb-3 font-mono bg-slate-700/50 text-slate-300 border-slate-600 resize-none overflow-x-hidden text-xs rounded-lg"
           />
           
-          <div className="flex gap-2">
+          {/* Botões em grid para mobile */}
+          <div className="grid grid-cols-2 gap-2">
             <CopyToClipboardButton
               textToCopy={allProductsText}
               buttonText="Copiar"
-              className="flex-1 h-12 bg-slate-700 hover:bg-slate-600 text-white border-slate-600"
+              className="h-11 bg-slate-700 hover:bg-slate-600 text-white border-slate-600 text-sm"
               variant="outline"
             />
             <RegisterSaleButton
@@ -303,6 +301,8 @@ export default function Home() {
               couponText={allProductsText}
               onSuccess={handleSaleSuccess}
             />
+          </div>
+          <div className="mt-2">
             <ResetQuantitiesButton fetchProducts={fetchProducts} />
           </div>
         </div>
@@ -312,7 +312,7 @@ export default function Home() {
           <div className="mb-4">
             <Button 
               onClick={handleAddProduct} 
-              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm"
             >
               <Plus className="h-4 w-4 mr-2" /> Adicionar Produto
             </Button>

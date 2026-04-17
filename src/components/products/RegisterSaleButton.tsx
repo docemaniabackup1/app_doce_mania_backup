@@ -107,46 +107,46 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
     <>
       <Button
         onClick={handleOpenDialog}
-        className="flex-1 text-white h-11 font-semibold"
+        className="h-11 text-white font-semibold text-sm"
         style={{ backgroundColor: '#1e40af' }}
         disabled={productsToSell.length === 0}
       >
-        <ShoppingCart className="h-4 w-4 mr-2" />
+        <ShoppingCart className="h-4 w-4 mr-1.5" />
         Registrar Venda
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-sm w-[95vw] bg-slate-800 border-slate-700 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-white text-center text-xl">Confirmar Venda</DialogTitle>
+        <DialogContent className="w-[92vw] max-w-sm bg-slate-800 border-slate-700 text-white p-4">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-white text-center text-lg font-bold">Confirmar Venda</DialogTitle>
           </DialogHeader>
           
-          <div className="py-4 space-y-5">
+          <div className="py-3 space-y-4">
             {/* Cliente */}
-            <div className="text-center">
-              <p className="text-xs text-slate-400 uppercase tracking-wider">Cliente</p>
-              <p className="text-xl font-bold text-white mt-1">{clientName}</p>
+            <div className="text-center bg-slate-700/30 rounded-lg py-2.5">
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider">Cliente</p>
+              <p className="text-base font-bold text-white mt-0.5">{clientName}</p>
             </div>
 
             {/* Valor Total */}
-            <div className="bg-slate-700/50 rounded-xl p-4 text-center">
-              <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Valor Total</p>
-              <p className="text-3xl font-bold text-emerald-400">R$ {totalValue.toFixed(2)}</p>
-              <p className="text-xs text-slate-500 mt-1">{totalItems} itens</p>
+            <div className="bg-slate-700/50 rounded-xl p-3 text-center">
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Valor Total</p>
+              <p className="text-2xl font-bold text-emerald-400">R$ {totalValue.toFixed(2)}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{totalItems} itens</p>
             </div>
 
             {/* Forma de Pagamento */}
             <div>
-              <p className="text-xs text-slate-400 uppercase tracking-wider mb-3 text-center">Forma de Pagamento</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2 text-center">Forma de Pagamento</p>
               
               {/* À Vista */}
               <div className="mb-2">
-                <p className="text-xs text-slate-500 mb-1.5">À Vista</p>
-                <div className="grid grid-cols-2 gap-2">
+                <p className="text-[10px] text-slate-500 mb-1">À Vista</p>
+                <div className="grid grid-cols-2 gap-1.5">
                   <button
                     type="button"
                     onClick={() => setPaymentType('dinheiro')}
-                    className={`py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                    className={`py-2 px-2 rounded-lg border-2 text-sm font-medium transition-all ${
                       paymentType === 'dinheiro'
                         ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
                         : 'border-slate-600 text-slate-300 hover:border-slate-500'
@@ -157,7 +157,7 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
                   <button
                     type="button"
                     onClick={() => setPaymentType('pix')}
-                    className={`py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                    className={`py-2 px-2 rounded-lg border-2 text-sm font-medium transition-all ${
                       paymentType === 'pix'
                         ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
                         : 'border-slate-600 text-slate-300 hover:border-slate-500'
@@ -170,14 +170,14 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
 
               {/* A Prazo */}
               <div>
-                <p className="text-xs text-slate-500 mb-1.5">A Prazo</p>
-                <div className="grid grid-cols-4 gap-2">
+                <p className="text-[10px] text-slate-500 mb-1">A Prazo</p>
+                <div className="grid grid-cols-4 gap-1.5">
                   {(['7d', '14d', '21d', '30d'] as PaymentType[]).map((d) => (
                     <button
                       key={d}
                       type="button"
                       onClick={() => setPaymentType(d)}
-                      className={`py-2 px-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                      className={`py-2 px-1 rounded-lg border-2 text-sm font-medium transition-all ${
                         paymentType === d
                           ? 'border-amber-500 bg-amber-500/20 text-amber-300'
                           : 'border-slate-600 text-slate-300 hover:border-slate-500'
@@ -191,22 +191,22 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
             </div>
 
             {/* Botões */}
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 pt-1">
               <Button
                 variant="outline"
                 onClick={() => setIsOpen(false)}
-                className="flex-1 h-12 border-slate-600 text-slate-300 hover:bg-slate-700 text-base"
+                className="flex-1 h-11 border-slate-600 text-slate-300 hover:bg-slate-700 text-sm"
                 disabled={isLoading}
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleConfirmSale}
-                className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-semibold"
+                className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                 ) : null}
                 Confirmar
               </Button>
@@ -216,11 +216,11 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
       </Dialog>
 
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent className="sm:max-w-xs w-[90vw] text-center bg-slate-800 border-slate-700 text-white">
-          <div className="py-8 flex flex-col items-center">
-            <CheckCircle className="h-20 w-20 text-emerald-400 mb-4" />
-            <p className="text-xl font-bold">Venda Registrada!</p>
-            <p className="text-sm text-slate-400 mt-2">
+        <DialogContent className="w-[80vw] max-w-xs text-center bg-slate-800 border-slate-700 text-white p-6">
+          <div className="py-4 flex flex-col items-center">
+            <CheckCircle className="h-16 w-16 text-emerald-400 mb-3" />
+            <p className="text-lg font-bold">Venda Registrada!</p>
+            <p className="text-sm text-slate-400 mt-1.5">
               {clientName} • {getPaymentLabel()}
             </p>
           </div>

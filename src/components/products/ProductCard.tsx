@@ -157,8 +157,8 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   }
 
   return (
-    <div className={`relative rounded-xl overflow-hidden transition-all ${
-      isOutOfStock ? 'opacity-60' : ''
+    <div className={`relative rounded-xl overflow-hidden transition-all border ${
+      isOutOfStock ? 'opacity-60 border-gray-700' : 'border-slate-600'
     }`} style={{ backgroundColor: '#1e293b' }}>
       {isPending && (
         <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center z-20 rounded-xl">
@@ -167,46 +167,46 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
       )}
 
       {/* Header com nome */}
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+      <div className="px-3 pt-3 pb-2 flex items-center justify-between border-b border-slate-700/50">
         {isEditingName ? (
           <Input
             value={editedName}
             onChange={(e) => setEditedName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="text-base font-semibold h-10 bg-gray-700 border-gray-600 text-white"
+            className="text-sm font-semibold h-9 bg-gray-700 border-gray-600 text-white"
             autoFocus
             maxLength={100}
           />
         ) : (
-          <h3 className="text-base font-bold text-white truncate flex-1 pr-2" title={product.name}>
+          <h3 className="text-sm font-bold text-white truncate flex-1 pr-2" title={product.name}>
             {product.name}
           </h3>
         )}
         
         {isAdmin && (
-          <div className="flex gap-1 shrink-0">
+          <div className="flex gap-0.5 shrink-0">
             {isEditingName ? (
               <>
-                <Button variant="ghost" size="icon" onClick={handleSaveName} className="h-8 w-8 hover:bg-gray-700">
-                  <Check className="h-4 w-4 text-green-400" />
+                <Button variant="ghost" size="icon" onClick={handleSaveName} className="h-7 w-7 hover:bg-gray-700">
+                  <Check className="h-3.5 w-3.5 text-green-400" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8 hover:bg-gray-700">
-                  <X className="h-4 w-4 text-red-400" />
+                <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-7 w-7 hover:bg-gray-700">
+                  <X className="h-3.5 w-3.5 text-red-400" />
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="ghost" size="icon" onClick={handleEditClick} className="h-8 w-8 hover:bg-gray-700 text-gray-400">
-                  <Pencil className="h-3.5 w-3.5" />
+                <Button variant="ghost" size="icon" onClick={handleEditClick} className="h-7 w-7 hover:bg-gray-700 text-gray-400">
+                  <Pencil className="h-3 w-3" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={handleDelete} className="h-8 w-8 hover:bg-gray-700 text-gray-400">
-                  <Trash2 className="h-3.5 w-3.5" />
+                <Button variant="ghost" size="icon" onClick={handleDelete} className="h-7 w-7 hover:bg-gray-700 text-gray-400">
+                  <Trash2 className="h-3 w-3" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={onMoveUp} disabled={isFirst} className="h-8 w-8 hover:bg-gray-700 text-gray-400">
-                  <ChevronUp className="h-3.5 w-3.5" />
+                <Button variant="ghost" size="icon" onClick={onMoveUp} disabled={isFirst} className="h-7 w-7 hover:bg-gray-700 text-gray-400">
+                  <ChevronUp className="h-3 w-3" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={onMoveDown} disabled={isLast} className="h-8 w-8 hover:bg-gray-700 text-gray-400">
-                  <ChevronDown className="h-3.5 w-3.5" />
+                <Button variant="ghost" size="icon" onClick={onMoveDown} disabled={isLast} className="h-7 w-7 hover:bg-gray-700 text-gray-400">
+                  <ChevronDown className="h-3 w-3" />
                 </Button>
               </>
             )}
@@ -215,19 +215,19 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
       </div>
       
       {/* Conteúdo */}
-      <div className="px-4 pb-4 space-y-3">
+      <div className="px-3 py-3 space-y-2.5">
         {/* Preço */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Preço Unitário</label>
+          <label className="block text-[10px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Preço Unit.</label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">R$</span>
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm">R$</span>
             <Input
               type="text"
               inputMode="decimal"
               value={priceInput}
               onChange={handlePriceChange}
               onBlur={handlePriceBlur}
-              className="h-11 text-base bg-gray-700/50 border-gray-600 text-white pl-10 font-medium"
+              className="h-10 text-sm bg-gray-700/50 border-gray-600 text-white pl-9 font-medium"
               placeholder="0,00"
             />
           </div>
@@ -235,12 +235,12 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
 
         {/* Quantidade */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Quantidade</label>
-          <div className="flex items-center gap-0">
+          <label className="block text-[10px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Quantidade</label>
+          <div className="flex items-center">
             <button
               type="button"
               onClick={handleDecrementQuantity}
-              className="h-11 w-12 flex items-center justify-center rounded-l-lg text-white font-bold text-xl active:scale-95 transition-transform"
+              className="h-10 w-10 flex items-center justify-center rounded-l-lg text-white font-bold text-lg active:scale-95 transition-transform"
               style={{ backgroundColor: '#dc2626' }}
             >
               −
@@ -251,14 +251,13 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               value={quantityInput}
               onChange={handleQuantityInputChange}
               onBlur={handleQuantityBlur}
-              className="h-11 w-full text-center text-lg font-bold bg-gray-700/50 border-y border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              style={{ minWidth: '60px' }}
+              className="h-10 flex-1 text-center text-base font-bold bg-gray-700/50 border-y border-gray-600 text-white focus:outline-none focus:ring-0"
             />
             <button
               type="button"
               onClick={handleIncrementQuantity}
               disabled={!isAdmin && product.quantity >= product.stock}
-              className="h-11 w-12 flex items-center justify-center rounded-r-lg text-white font-bold text-xl active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-10 w-10 flex items-center justify-center rounded-r-lg text-white font-bold text-lg active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#16a34a' }}
             >
               +
@@ -269,7 +268,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
         {/* Admin: Estoque */}
         {isAdmin && (
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1.5">
+            <label className="block text-[10px] font-medium text-gray-500 mb-1 uppercase tracking-wider">
               <Package className="h-3 w-3 inline mr-1" />
               Estoque Total
             </label>
@@ -278,14 +277,14 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               value={product.stock}
               onChange={handleStockChange}
               min={0}
-              className="h-11 text-base bg-gray-700/50 border-gray-600 text-white"
+              className="h-10 text-sm bg-gray-700/50 border-gray-600 text-white"
             />
           </div>
         )}
 
         {/* Disponível */}
-        <div className="flex items-center justify-between pt-1 border-t border-gray-700">
-          <span className="text-xs text-gray-500">Disponível</span>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-700/50">
+          <span className="text-[10px] text-gray-500 uppercase tracking-wider">Disponível</span>
           <span className={`text-sm font-bold ${
             isOutOfStock ? 'text-red-400' : 
             isLowStock ? 'text-amber-400' : 

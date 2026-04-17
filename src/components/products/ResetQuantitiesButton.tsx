@@ -47,38 +47,37 @@ const ResetQuantitiesButton: React.FC<ResetQuantitiesButtonProps> = ({ fetchProd
     <>
       <Button 
         variant="outline" 
-        size="sm" 
         onClick={() => setIsOpen(true)} 
-        className="bg-yellow-600 hover:bg-yellow-700 text-white h-9 px-3 text-xs border-yellow-500"
+        className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium border-amber-500"
       >
-        <RotateCcw className="h-3 w-3 mr-1" />
-        Zerar
+        <RotateCcw className="h-4 w-4 mr-1.5" />
+        Zerar Quantidades
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-sm w-[95vw] bg-gray-800 border-gray-700 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+        <DialogContent className="w-[92vw] max-w-sm bg-gray-800 border-gray-700 text-white p-4">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-white flex items-center gap-2 text-base">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
               Confirmar Ação
             </DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-gray-300 text-center mb-4">
+          <div className="py-3">
+            <p className="text-gray-300 text-center mb-4 text-sm">
               Deseja zerar todas as quantidades selecionadas?
             </p>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => setIsOpen(false)}
-                className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                className="flex-1 h-11 border-gray-600 text-gray-300 hover:bg-gray-700 text-sm"
                 disabled={isLoading}
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleResetQuantities}
-                className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white"
+                className="flex-1 h-11 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium"
                 disabled={isLoading}
               >
                 {isLoading ? 'Zerando...' : 'Confirmar'}
