@@ -299,22 +299,23 @@ export default function Home() {
             <RegisterSaleButton
               products={products}
               clientName={clientName}
+              couponText={allProductsText}
               onSuccess={handleSaleSuccess}
             />
+            <ResetQuantitiesButton fetchProducts={fetchProducts} />
           </div>
         </div>
 
-        {/* Botões de Ação - Apenas Admin */}
+        {/* Botão de Adicionar Produto - Apenas Admin */}
         {isAdmin && (
-          <div className="mb-4 flex gap-2">
+          <div className="mb-4">
             <Button 
               onClick={handleAddProduct} 
               size="sm" 
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white h-11 sm:h-10"
+              className="w-full bg-green-600 hover:bg-green-700 text-white h-11 sm:h-10"
             >
               <Plus className="h-4 w-4 mr-1" /> Adicionar Produto
             </Button>
-            <ResetQuantitiesButton fetchProducts={fetchProducts} />
           </div>
         )}
 

@@ -9,21 +9,29 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, Trash2, Pencil, Check, X } from 'lucide-react';
+import { History, Trash2, Receipt, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface SaleLog {
+interface SaleItem {
   id: string;
+  sale_id: string;
   product_id: string | null;
   product_name: string;
   quantity: number;
   unit_price: number;
   total_price: number;
+}
+
+interface Sale {
+  id: string;
   client_name: string;
-  payment_type?: string;
+  total_value: number;
+  payment_type: string;
+  coupon_text: string;
+  items_count: number;
   created_at: string;
+  items: SaleItem[];
 }
 
 interface SaleLogsSheetProps {
@@ -40,23 +48,22 @@ const paymentLabels: Record<string, string> = {
 };
 
 const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
-  const [logs, setLogs] = useState<SaleLog[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editQuantity, setEditQuantity] = useState<number>(0);
-  const [editPrice, setEditPrice] = useState<number>(0);
+  const [expandedSale, setExpandedSale] = useState<string | null>(null);
+  const [couponImage, setCouponImage] = useState<string | null>(null);
 
-  const fetchLogs = useCallback(async () => {
+  const fetchSales = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/sales');
       if (response.ok) {
         const data = await response.json();
-        setLogs(data);
+        setSales(data);
       }
     } catch {
-      toast.error('Erro ao carregar logs');
+      toast.error('Erro ao carregar vendas');
     } finally {
       setLoading(false);
     }
@@ -64,9 +71,9 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
 
   useEffect(() => {
     if (isOpen) {
-      fetchLogs();
+      fetchSales();
     }
-  }, [isOpen, fetchLogs]);
+  }, [isOpen, fetchSales]);
 
   const handleDelete = useCallback(async (id: string) => {
     if (!isAdmin) {
@@ -77,49 +84,16 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     try {
       const response = await fetch(`/api/sales?id=${id}`, { method: 'DELETE' });
       if (response.ok) {
-        setLogs(prev => prev.filter(log => log.id !== id));
-        toast.success('Log excluído');
+        setSales(prev => prev.filter(sale => sale.id !== id));
+        toast.success('Venda excluída e estoque restaurado');
       }
     } catch {
       toast.error('Erro ao excluir');
     }
   }, [isAdmin]);
 
-  const handleEdit = useCallback((log: SaleLog) => {
-    if (!isAdmin) return;
-    setEditingId(log.id);
-    setEditQuantity(log.quantity);
-    setEditPrice(log.unit_price);
-  }, [isAdmin]);
-
-  const handleSaveEdit = useCallback(async (id: string) => {
-    try {
-      const response = await fetch('/api/sales', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          quantity: editQuantity,
-          unit_price: editPrice,
-        }),
-      });
-
-      if (response.ok) {
-        setLogs(prev => prev.map(log => 
-          log.id === id 
-            ? { ...log, quantity: editQuantity, unit_price: editPrice, total_price: editQuantity * editPrice }
-            : log
-        ));
-        setEditingId(null);
-        toast.success('Log atualizado');
-      }
-    } catch {
-      toast.error('Erro ao atualizar');
-    }
-  }, [editQuantity, editPrice]);
-
-  const handleCancelEdit = useCallback(() => {
-    setEditingId(null);
+  const toggleExpanded = useCallback((saleId: string) => {
+    setExpandedSale(prev => prev === saleId ? null : saleId);
   }, []);
 
   const formatDate = (dateStr: string) => {
@@ -127,6 +101,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     return date.toLocaleString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
+      year: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -137,138 +112,190 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     return paymentLabels[type] || type;
   };
 
+  const getPaymentBadge = (type: string) => {
+    const isVista = type === 'dinheiro' || type === 'pix';
+    return isVista 
+      ? 'bg-green-900/50 text-green-400 border-green-700'
+      : 'bg-orange-900/50 text-orange-400 border-orange-700';
+  };
+
+  const showCouponImage = useCallback((sale: Sale) => {
+    // Gerar imagem do cupom usando canvas
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const lines = sale.coupon_text.split('\n');
+    const lineHeight = 20;
+    const padding = 20;
+    const width = 320;
+    const height = lines.length * lineHeight + padding * 2;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    // Fundo branco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    // Texto
+    ctx.fillStyle = '#000000';
+    ctx.font = '12px monospace';
+    ctx.textBaseline = 'top';
+
+    lines.forEach((line, index) => {
+      ctx.fillText(line, padding, padding + index * lineHeight);
+    });
+
+    // Converter para imagem
+    const imageData = canvas.toDataURL('image/png');
+    setCouponImage(imageData);
+  }, []);
+
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <button
-          className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-all touch-manipulation"
-          aria-label="Histórico de vendas"
-        >
-          <History className="h-5 w-5" />
-        </button>
-      </SheetTrigger>
-      <SheetContent side="bottom" className="h-[85vh] sm:h-[80vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white">
-        <SheetHeader className="pb-2">
-          <SheetTitle className="text-lg">Histórico de Vendas</SheetTitle>
-        </SheetHeader>
-        <ScrollArea className="h-[calc(100%-60px)] mt-2">
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Carregando...
-            </div>
-          ) : logs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhuma venda registrada
-            </div>
-          ) : (
-            <div className="space-y-2 pb-4">
-              {logs.map((log) => (
-                <div
-                  key={log.id}
-                  className="bg-gray-700 border border-gray-600 rounded-lg p-3"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate text-white">{log.product_name}</p>
-                      <p className="text-xs text-gray-400">
-                        {formatDate(log.created_at)}
-                      </p>
-                    </div>
-                    {isAdmin && (
-                      <div className="flex gap-0.5 shrink-0 ml-2">
-                        {editingId === log.id ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleSaveEdit(log.id)}
-                            >
-                              <Check className="h-4 w-4 text-green-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={handleCancelEdit}
-                            >
-                              <X className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleEdit(log)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleDelete(log.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </>
+    <>
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetTrigger asChild>
+          <button
+            className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-all touch-manipulation"
+            aria-label="Histórico de vendas"
+          >
+            <History className="h-5 w-5" />
+          </button>
+        </SheetTrigger>
+        <SheetContent side="bottom" className="h-[85vh] sm:h-[80vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white">
+          <SheetHeader className="pb-2">
+            <SheetTitle className="text-lg text-white">Histórico de Vendas</SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100%-60px)] mt-2">
+            {loading ? (
+              <div className="text-center py-8 text-gray-400">
+                Carregando...
+              </div>
+            ) : sales.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                Nenhuma venda registrada
+              </div>
+            ) : (
+              <div className="space-y-3 pb-4">
+                {sales.map((sale) => (
+                  <div
+                    key={sale.id}
+                    className="bg-gray-700 border border-gray-600 rounded-lg overflow-hidden"
+                  >
+                    {/* Header do Card - Sempre visível */}
+                    <div className="p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-lg text-white truncate">{sale.client_name}</p>
+                          <p className="text-xs text-gray-400">
+                            {formatDate(sale.created_at)}
+                          </p>
+                        </div>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-gray-600"
+                            onClick={() => handleDelete(sale.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-400" />
+                          </Button>
                         )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-medium px-2 py-1 rounded border ${getPaymentBadge(sale.payment_type)}`}>
+                            {getPaymentLabel(sale.payment_type)}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {sale.items_count} itens
+                          </span>
+                        </div>
+                        <span className="text-xl font-bold text-green-400">
+                          R$ {sale.total_value.toFixed(2)}
+                        </span>
+                      </div>
+
+                      {/* Botões de ação */}
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-9 border-gray-600 text-gray-300 hover:bg-gray-600"
+                          onClick={() => toggleExpanded(sale.id)}
+                        >
+                          {expandedSale === sale.id ? (
+                            <>
+                              <ChevronUp className="h-4 w-4 mr-1" />
+                              Ocultar Itens
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-4 w-4 mr-1" />
+                              Ver Itens
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 border-gray-600 text-gray-300 hover:bg-gray-600"
+                          onClick={() => showCouponImage(sale)}
+                        >
+                          <Receipt className="h-4 w-4 mr-1" />
+                          Cupom
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Itens expandidos */}
+                    {expandedSale === sale.id && sale.items && (
+                      <div className="border-t border-gray-600 p-3 bg-gray-750">
+                        <div className="space-y-2">
+                          {sale.items.map((item) => (
+                            <div key={item.id} className="flex justify-between text-sm">
+                              <span className="text-gray-300 truncate flex-1">{item.product_name}</span>
+                              <span className="text-gray-400 ml-2">
+                                {item.quantity}x R$ {item.unit_price.toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
-                  
-                  {editingId === log.id ? (
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      <div>
-                        <label className="text-xs text-gray-400">Qtd</label>
-                        <Input
-                          type="number"
-                          value={editQuantity}
-                          onChange={(e) => setEditQuantity(parseInt(e.target.value) || 0)}
-                          className="h-9 bg-gray-600 border-gray-500 text-white"
-                          min={0}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-400">Preço</label>
-                        <Input
-                          type="number"
-                          value={editPrice}
-                          onChange={(e) => setEditPrice(parseFloat(e.target.value) || 0)}
-                          className="h-9 bg-gray-600 border-gray-500 text-white"
-                          min={0}
-                          step="0.01"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">
-                        {log.quantity}x R$ {log.unit_price.toFixed(2)}
-                      </span>
-                      <span className="font-semibold text-green-500">
-                        R$ {log.total_price.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-600">
-                    <p className="text-xs text-gray-400 truncate">
-                      {log.client_name}
-                    </p>
-                    <span className="text-xs font-medium text-gray-400">
-                      {getPaymentLabel(log.payment_type)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {/* Modal de Cupom */}
+      {couponImage && (
+        <div 
+          className="fixed inset-0 z-[10000] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setCouponImage(null)}
+        >
+          <div className="relative max-w-sm w-full">
+            <img 
+              src={couponImage} 
+              alt="Cupom" 
+              className="w-full rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <Button
+              className="absolute -top-2 -right-2 rounded-full h-8 w-8 bg-gray-800 border border-gray-600"
+              onClick={() => setCouponImage(null)}
+            >
+              ✕
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

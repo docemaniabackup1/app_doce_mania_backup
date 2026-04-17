@@ -15,6 +15,7 @@ import { Product } from '@/lib/supabase';
 interface RegisterSaleButtonProps {
   products: Product[];
   clientName: string;
+  couponText: string;
   onSuccess: () => void;
 }
 
@@ -32,6 +33,7 @@ const paymentOptions: { value: PaymentType; label: string; group: string }[] = [
 const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
   products,
   clientName,
+  couponText,
   onSuccess,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -73,6 +75,7 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
           })),
           clientName: clientName.trim(),
           paymentType,
+          couponText,
         }),
       });
 

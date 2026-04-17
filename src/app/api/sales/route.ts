@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase, isValidSaleLog } from '@/lib/supabase';
+import { supabase, isValidSale, isValidSaleItem } from '@/lib/supabase';
 
 const securityHeaders = {
   'Content-Type': 'application/json',
@@ -21,22 +21,43 @@ function isValidUUID(id: string): boolean {
   return uuidRegex.test(id);
 }
 
-// GET - Buscar todos os logs de vendas
+// GET - Buscar vendas com seus itens
 export async function GET() {
   try {
-    const { data, error } = await supabase
-      .from('sale_logs')
+    // Buscar vendas
+    const { data: sales, error: salesError } = await supabase
+      .from('sales')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(50);
 
-    if (error) {
-      console.error('[API] Error fetching sale logs:', error.message);
-      return errorResponse('Erro ao carregar logs', 500);
+    if (salesError) {
+      console.error('[API] Error fetching sales:', salesError.message);
+      return errorResponse('Erro ao carregar vendas', 500);
     }
 
-    const validLogs = data?.filter(isValidSaleLog) ?? [];
-    return successResponse(validLogs);
+    const validSales = sales?.filter(isValidSale) ?? [];
+    
+    // Buscar itens de todas as vendas
+    const saleIds = validSales.map(s => s.id);
+    const { data: items, error: itemsError } = await supabase
+      .from('sale_items')
+      .select('*')
+      .in('sale_id', saleIds);
+
+    if (itemsError) {
+      console.error('[API] Error fetching sale items:', itemsError.message);
+    }
+
+    const validItems = items?.filter(isValidSaleItem) ?? [];
+
+    // Agrupar itens por venda
+    const salesWithItems = validSales.map(sale => ({
+      ...sale,
+      items: validItems.filter(item => item.sale_id === sale.id)
+    }));
+
+    return successResponse(salesWithItems);
   } catch (err) {
     console.error('[API] Unexpected error:', err);
     return errorResponse('Erro interno do servidor', 500);
@@ -47,10 +68,14 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { items, clientName, paymentType } = body;
+    const { items, clientName, paymentType, couponText } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return errorResponse('Nenhum item para registrar', 400);
+    }
+
+    if (!clientName?.trim()) {
+      return errorResponse('Nome do cliente é obrigatório', 400);
     }
 
     // Buscar produtos atuais para verificar estoque
@@ -85,47 +110,59 @@ export async function POST(request: Request) {
       return errorResponse(stockErrors.join(' | '), 400);
     }
 
-    // Preparar logs de venda
-    const saleLogs = items.map((item: { id: string; name: string; quantity: number; price: number }) => ({
+    // Calcular totais
+    const totalValue = items.reduce((sum: number, item: { price: number; quantity: number }) => 
+      sum + item.price * item.quantity, 0);
+    const itemsCount = items.reduce((sum: number, item: { quantity: number }) => 
+      sum + item.quantity, 0);
+
+    // Criar a venda
+    const { data: sale, error: saleError } = await supabase
+      .from('sales')
+      .insert([{
+        client_name: clientName.trim(),
+        total_value: totalValue,
+        payment_type: paymentType || 'dinheiro',
+        coupon_text: couponText || '',
+        items_count: itemsCount,
+      }])
+      .select()
+      .single();
+
+    if (saleError || !sale) {
+      console.error('[API] Error creating sale:', saleError?.message);
+      return errorResponse('Erro ao registrar venda', 500);
+    }
+
+    // Criar os itens da venda
+    const saleItems = items.map((item: { id: string; name: string; quantity: number; price: number }) => ({
+      sale_id: sale.id,
       product_id: item.id,
       product_name: item.name,
       quantity: item.quantity,
       unit_price: item.price,
       total_price: item.price * item.quantity,
-      client_name: clientName || 'Não identificado',
-      payment_type: paymentType || 'dinheiro',
     }));
 
-    // Inserir logs de venda
-    const { error: insertError } = await supabase
-      .from('sale_logs')
-      .insert(saleLogs);
+    const { error: itemsError } = await supabase
+      .from('sale_items')
+      .insert(saleItems);
 
-    if (insertError) {
-      console.error('[API] Error inserting sale logs:', insertError.message);
-      return errorResponse('Erro ao registrar venda', 500);
+    if (itemsError) {
+      console.error('[API] Error inserting sale items:', itemsError.message);
+      // Tentar deletar a venda criada
+      await supabase.from('sales').delete().eq('id', sale.id);
+      return errorResponse('Erro ao registrar itens da venda', 500);
     }
 
     // Atualizar estoque dos produtos
-    const stockUpdates = items.map((item: { id: string; quantity: number }) => {
+    for (const item of items) {
       const product = productMap.get(item.id);
-      if (!product) return null;
-      return {
-        id: item.id,
-        stock: product.stock - item.quantity,
-      };
-    }).filter(Boolean);
-
-    // Atualizar cada produto
-    for (const update of stockUpdates) {
-      if (!update) continue;
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({ stock: update.stock })
-        .eq('id', update.id);
-
-      if (updateError) {
-        console.error('[API] Error updating stock for product:', update.id, updateError.message);
+      if (product) {
+        await supabase
+          .from('products')
+          .update({ stock: product.stock - item.quantity })
+          .eq('id', item.id);
       }
     }
 
@@ -139,10 +176,8 @@ export async function POST(request: Request) {
 
     return successResponse({ 
       success: true, 
+      sale: sale,
       message: 'Venda registrada com sucesso!',
-      totalItems: items.length,
-      totalValue: items.reduce((sum: number, item: { price: number; quantity: number }) => sum + item.price * item.quantity, 0),
-      paymentType,
     });
   } catch (err) {
     console.error('[API] Unexpected error:', err);
@@ -150,7 +185,7 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE - Excluir um log de venda
+// DELETE - Excluir uma venda
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -160,74 +195,47 @@ export async function DELETE(request: Request) {
       return errorResponse('ID inválido', 400);
     }
 
+    // Buscar itens da venda para restaurar estoque
+    const { data: items } = await supabase
+      .from('sale_items')
+      .select('product_id, quantity')
+      .eq('sale_id', id);
+
+    // Restaurar estoque
+    if (items) {
+      for (const item of items) {
+        if (item.product_id) {
+          const { data: product } = await supabase
+            .from('products')
+            .select('stock')
+            .eq('id', item.product_id)
+            .single();
+          
+          if (product) {
+            await supabase
+              .from('products')
+              .update({ stock: product.stock + item.quantity })
+              .eq('id', item.product_id);
+          }
+        }
+      }
+    }
+
+    // Deletar itens da venda
+    await supabase.from('sale_items').delete().eq('sale_id', id);
+
+    // Deletar a venda
     const { error } = await supabase
-      .from('sale_logs')
+      .from('sales')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('[API] Error deleting sale log:', error.message);
-      return errorResponse('Erro ao excluir log', 500);
+      console.error('[API] Error deleting sale:', error.message);
+      return errorResponse('Erro ao excluir venda', 500);
     }
 
     return successResponse({ success: true });
-  } catch (err) {
-    console.error('[API] Unexpected error:', err);
-    return errorResponse('Erro interno do servidor', 500);
-  }
-}
-
-// PUT - Editar um log de venda
-export async function PUT(request: Request) {
-  try {
-    const body = await request.json();
-    const { id, quantity, unit_price } = body;
-
-    if (!id || !isValidUUID(id)) {
-      return errorResponse('ID inválido', 400);
-    }
-
-    const updates: Record<string, number> = {};
-    
-    if (typeof quantity === 'number' && quantity >= 0) {
-      updates.quantity = quantity;
-    }
-    if (typeof unit_price === 'number' && unit_price >= 0) {
-      updates.unit_price = unit_price;
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return errorResponse('Nenhum campo válido para atualizar', 400);
-    }
-
-    // Calcular novo total
-    if (updates.quantity !== undefined || updates.unit_price !== undefined) {
-      const { data: existingLog } = await supabase
-        .from('sale_logs')
-        .select('quantity, unit_price')
-        .eq('id', id)
-        .single();
-
-      if (existingLog) {
-        const qty = updates.quantity ?? existingLog.quantity;
-        const price = updates.unit_price ?? existingLog.unit_price;
-        updates.total_price = qty * price;
-      }
-    }
-
-    const { data, error } = await supabase
-      .from('sale_logs')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[API] Error updating sale log:', error.message);
-      return errorResponse('Erro ao atualizar log', 500);
-    }
-
-    return successResponse(data);
   } catch (err) {
     console.error('[API] Unexpected error:', err);
     return errorResponse('Erro interno do servidor', 500);

@@ -29,16 +29,24 @@ export interface Product {
   created_at?: string;
 }
 
-export interface SaleLog {
+export interface Sale {
   id: string;
+  client_name: string;
+  total_value: number;
+  payment_type: string;
+  coupon_text: string;
+  items_count: number;
+  created_at: string;
+}
+
+export interface SaleItem {
+  id: string;
+  sale_id: string;
   product_id: string | null;
   product_name: string;
   quantity: number;
   unit_price: number;
   total_price: number;
-  client_name: string;
-  payment_type?: string;
-  created_at: string;
 }
 
 export function isValidProduct(data: unknown): data is Product {
@@ -53,15 +61,25 @@ export function isValidProduct(data: unknown): data is Product {
   );
 }
 
-export function isValidSaleLog(data: unknown): data is SaleLog {
+export function isValidSale(data: unknown): data is Sale {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return (
+    typeof obj.id === 'string' &&
+    typeof obj.client_name === 'string' &&
+    typeof obj.total_value === 'number' &&
+    typeof obj.payment_type === 'string' &&
+    typeof obj.created_at === 'string'
+  );
+}
+
+export function isValidSaleItem(data: unknown): data is SaleItem {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
     typeof obj.id === 'string' &&
     typeof obj.product_name === 'string' &&
     typeof obj.quantity === 'number' &&
-    typeof obj.unit_price === 'number' &&
-    typeof obj.total_price === 'number' &&
-    typeof obj.created_at === 'string'
+    typeof obj.unit_price === 'number'
   );
 }
