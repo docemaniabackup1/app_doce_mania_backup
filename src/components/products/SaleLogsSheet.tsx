@@ -14,7 +14,6 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { History, Trash2, Receipt, X, ChevronDown, ChevronUp, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -250,9 +249,6 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     const prazo = filteredSales
       .filter(s => !isVista(s.payment_type))
       .reduce((sum, sale) => sum + sale.total_value, 0);
-    const prazoReceived = filteredSales
-      .filter(s => !isVista(s.payment_type) && s.status === 'received')
-      .reduce((sum, sale) => sum + sale.total_value, 0);
     const prazoPending = filteredSales
       .filter(s => !isVista(s.payment_type) && s.status !== 'received')
       .reduce((sum, sale) => sum + sale.total_value, 0);
@@ -261,7 +257,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     const vistaCount = filteredSales.filter(s => isVista(s.payment_type)).length;
     const prazoCount = filteredSales.filter(s => !isVista(s.payment_type)).length;
 
-    return { total, vista, prazo, prazoReceived, prazoPending, count, vistaCount, prazoCount };
+    return { total, vista, prazo, prazoPending, count, vistaCount, prazoCount };
   }, [filteredSales]);
 
   return (
@@ -277,10 +273,11 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
         </SheetTrigger>
         <SheetContent 
           side="bottom" 
-          className="h-[90vh] sm:h-[85vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white z-[9999]"
+          className="h-[92vh] sm:h-[85vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white z-[9999] flex flex-col"
           onInteractOutside={(e) => e.preventDefault()}
         >
-          <div className="flex items-center justify-between mb-2">
+          {/* Header Fixo */}
+          <div className="flex items-center justify-between mb-2 shrink-0">
             <SheetHeader>
               <SheetTitle className="text-lg text-white">Histórico de Vendas</SheetTitle>
             </SheetHeader>
@@ -294,8 +291,8 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
             </SheetClose>
           </div>
           
-          {/* Filtros: Dia, Semana, Mês, Total */}
-          <div className="flex gap-1 py-3 border-b border-gray-700">
+          {/* Filtros Fixos */}
+          <div className="flex gap-1 py-3 border-b border-gray-700 shrink-0">
             <Button
               variant={filter === 'dia' ? 'default' : 'outline'}
               size="sm"
@@ -330,49 +327,48 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
             </Button>
           </div>
 
-          {/* Card de Totais */}
-          <div className="bg-gradient-to-r from-gray-700/80 to-gray-600/60 rounded-xl p-4 my-3 border border-gray-600 shadow-lg">
-            <div className="flex justify-between items-center mb-2">
+          {/* Card de Totais Fixo */}
+          <div className="bg-gradient-to-r from-gray-700/80 to-gray-600/60 rounded-xl p-3 my-2 border border-gray-600 shadow-lg shrink-0">
+            <div className="flex justify-between items-center mb-1">
               <span className="text-sm text-gray-400 font-medium">{getFilterLabel()}</span>
               <span className="text-xs text-gray-500">{totals.count} venda{totals.count !== 1 ? 's' : ''}</span>
             </div>
             
             {/* Total Principal */}
-            <div className="text-3xl font-bold text-green-400 mb-3">
+            <div className="text-2xl font-bold text-green-400 mb-2">
               R$ {totals.total.toFixed(2)}
             </div>
             
             {/* Detalhes À Vista e A Prazo */}
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="bg-gray-800/50 rounded-lg p-2">
-                <div className="flex items-center gap-1.5 mb-1">
+                <div className="flex items-center gap-1.5 mb-0.5">
                   <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
                   <span className="text-gray-400 text-xs">À Vista</span>
                 </div>
-                <div className="text-emerald-300 font-semibold">
+                <div className="text-emerald-300 font-semibold text-sm">
                   R$ {totals.vista.toFixed(2)}
                 </div>
-                <div className="text-gray-500 text-xs">{totals.vistaCount} venda{totals.vistaCount !== 1 ? 's' : ''}</div>
               </div>
               <div className="bg-gray-800/50 rounded-lg p-2">
-                <div className="flex items-center gap-1.5 mb-1">
+                <div className="flex items-center gap-1.5 mb-0.5">
                   <div className="w-2 h-2 rounded-full bg-amber-400"></div>
                   <span className="text-gray-400 text-xs">A Prazo</span>
                 </div>
-                <div className="text-amber-300 font-semibold">
+                <div className="text-amber-300 font-semibold text-sm">
                   R$ {totals.prazo.toFixed(2)}
                 </div>
-                <div className="text-gray-500 text-xs">{totals.prazoCount} venda{totals.prazoCount !== 1 ? 's' : ''}</div>
                 {totals.prazoPending > 0 && (
-                  <div className="text-orange-400 text-xs mt-1">
-                    Pendente: R$ {totals.prazoPending.toFixed(2)}
+                  <div className="text-orange-400 text-xs">
+                    Pend: R$ {totals.prazoPending.toFixed(2)}
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          <ScrollArea className="h-[calc(100%-260px)] mt-2">
+          {/* Lista de Vendas - Área Scrollável */}
+          <div className="flex-1 overflow-y-auto min-h-0 mt-2">
             {loading ? (
               <div className="text-center py-8 text-gray-400">
                 Carregando...
@@ -397,12 +393,12 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                       }`}
                     >
                       {/* Card Principal */}
-                      <div className="p-4">
+                      <div className="p-3">
                         {/* Header: Nome e Data */}
-                        <div className="flex justify-between items-start mb-3">
+                        <div className="flex justify-between items-start mb-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="font-bold text-lg text-white truncate">{sale.client_name}</p>
+                              <p className="font-bold text-base text-white truncate">{sale.client_name}</p>
                               {isPrazoSale && (
                                 sale.status === 'received' ? (
                                   <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
@@ -411,7 +407,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                                 )
                               )}
                             </div>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-xs px-2 py-0.5 bg-gray-600 rounded text-gray-300">
                                 {formatDateShort(sale.created_at)}
                               </span>
@@ -424,22 +420,22 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 hover:bg-red-900/50 shrink-0"
+                              className="h-7 w-7 hover:bg-red-900/50 shrink-0"
                               onClick={() => handleDelete(sale.id)}
                             >
-                              <Trash2 className="h-4 w-4 text-red-400" />
+                              <Trash2 className="h-3.5 w-3.5 text-red-400" />
                             </Button>
                           )}
                         </div>
                         
                         {/* Valor e Pagamento */}
-                        <div className="flex items-center justify-between mb-3">
-                          <span className={`text-xs font-medium px-3 py-1 rounded-full border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}>
                             {getPaymentLabel(sale.payment_type)}
                             {isPrazoSale && (sale.status === 'received' ? ' ✓' : ' ⏳')}
                           </span>
                           <div className="text-right">
-                            <span className="text-2xl font-bold text-green-400">
+                            <span className="text-xl font-bold text-green-400">
                               R$ {sale.total_value.toFixed(2)}
                             </span>
                             <p className="text-xs text-gray-400">{sale.items_count} itens</p>
@@ -447,21 +443,21 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                         </div>
 
                         {/* Botões de Ação */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 h-9 border-gray-600 text-gray-300 hover:bg-gray-600"
+                            className="flex-1 min-w-[80px] h-8 border-gray-600 text-gray-300 hover:bg-gray-600 text-xs"
                             onClick={() => setExpandedSale(isExpanded ? null : sale.id)}
                           >
                             {isExpanded ? (
                               <>
-                                <ChevronUp className="h-4 w-4 mr-1" />
+                                <ChevronUp className="h-3 w-3 mr-1" />
                                 Ocultar
                               </>
                             ) : (
                               <>
-                                <ChevronDown className="h-4 w-4 mr-1" />
+                                <ChevronDown className="h-3 w-3 mr-1" />
                                 Detalhes
                               </>
                             )}
@@ -469,20 +465,20 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-9 border-gray-600 text-gray-300 hover:bg-gray-600 px-4"
+                            className="h-8 border-gray-600 text-gray-300 hover:bg-gray-600 px-3 text-xs"
                             onClick={() => showCouponImage(sale)}
                           >
-                            <Receipt className="h-4 w-4 mr-1" />
+                            <Receipt className="h-3 w-3 mr-1" />
                             Cupom
                           </Button>
                           {/* Botão de Receber - Apenas para vendas a prazo pendentes */}
                           {isAdmin && isPending && (
                             <Button
                               size="sm"
-                              className="h-9 bg-green-600 hover:bg-green-700 text-white px-4"
+                              className="h-8 bg-green-600 hover:bg-green-700 text-white px-3 text-xs"
                               onClick={() => handleMarkAsReceived(sale.id)}
                             >
-                              <CheckCircle className="h-4 w-4 mr-1" />
+                              <CheckCircle className="h-3 w-3 mr-1" />
                               Receber
                             </Button>
                           )}
@@ -491,11 +487,11 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
 
                       {/* Detalhes Expandidos */}
                       {isExpanded && sale.items && (
-                        <div className="border-t border-gray-600 bg-gray-800/50 p-3">
-                          <p className="text-xs text-gray-400 mb-2 font-medium">ITENS DA VENDA</p>
-                          <div className="space-y-1">
+                        <div className="border-t border-gray-600 bg-gray-800/50 p-2">
+                          <p className="text-xs text-gray-400 mb-1 font-medium">ITENS DA VENDA</p>
+                          <div className="space-y-0.5">
                             {sale.items.map((item) => (
-                              <div key={item.id} className="flex justify-between text-sm py-1 border-b border-gray-700/50 last:border-0">
+                              <div key={item.id} className="flex justify-between text-xs py-0.5 border-b border-gray-700/50 last:border-0">
                                 <span className="text-gray-300 truncate flex-1">{item.product_name}</span>
                                 <span className="text-gray-400 ml-2">
                                   {item.quantity}x R$ {item.unit_price.toFixed(2)}
@@ -510,7 +506,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                 })}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </SheetContent>
       </Sheet>
 
