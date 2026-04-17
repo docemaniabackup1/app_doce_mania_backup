@@ -38,55 +38,61 @@ const Header: React.FC<HeaderProps> = ({ products, isAdmin, onAdminChange }) => 
   const totalQuantity = products.reduce((sum, product) => sum + product.quantity, 0);
 
   return (
-    <header 
-      className="fixed top-0 left-0 right-0 z-[9999] bg-gray-800 border-b border-gray-700 shadow-lg"
-      style={{ 
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-      }}
-    >
-      <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
-        <div className="flex items-center justify-between">
-          {/* Esquerda - Hora */}
-          <div className="text-sm sm:text-base font-medium text-gray-400 min-w-[50px] sm:min-w-[60px]">
-            {currentTime}
-          </div>
-
-          {/* Centro - Totais */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3">
-            <div 
-              className="text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-base sm:text-lg font-bold shadow-sm min-w-[90px] text-center"
-              style={{ backgroundColor: '#16a34a' }}
-            >
-              R$ {totalOrderValue.toFixed(2)}
+    <>
+      {/* Spacer para compensar o header fixo */}
+      <div className="h-[60px] sm:h-[52px]" />
+      
+      <header 
+        className="fixed top-0 left-0 right-0 z-[9999] bg-slate-800 border-b border-slate-700 shadow-xl"
+        style={{ 
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          width: '100%',
+        }}
+      >
+        <div className="w-full max-w-4xl mx-auto px-3 py-2">
+          <div className="flex items-center justify-between h-10">
+            {/* Esquerda - Hora */}
+            <div className="text-sm font-medium text-slate-400 min-w-[45px]">
+              {currentTime}
             </div>
-            <div 
-              className="text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-base sm:text-lg font-bold shadow-sm min-w-[50px] text-center"
-              style={{ backgroundColor: '#2563eb' }}
-            >
-              {totalQuantity}
-            </div>
-          </div>
 
-          {/* Direita - Admin e Histórico */}
-          <div className="flex items-center gap-1 sm:gap-2 min-w-[50px] sm:min-w-[60px] justify-end">
-            <SaleLogsSheet isAdmin={isAdmin} />
-            <AdminLogin onAdminChange={onAdminChange} />
+            {/* Centro - Totais */}
+            <div className="flex items-center justify-center gap-2">
+              <div 
+                className="text-white px-3 py-1.5 rounded-lg text-base font-bold shadow-sm min-w-[85px] text-center"
+                style={{ backgroundColor: '#16a34a' }}
+              >
+                R$ {totalOrderValue.toFixed(2)}
+              </div>
+              <div 
+                className="text-white px-3 py-1.5 rounded-lg text-base font-bold shadow-sm min-w-[45px] text-center"
+                style={{ backgroundColor: '#2563eb' }}
+              >
+                {totalQuantity}
+              </div>
+            </div>
+
+            {/* Direita - Admin e Histórico */}
+            <div className="flex items-center gap-1.5 min-w-[45px] justify-end">
+              <SaleLogsSheet isAdmin={isAdmin} />
+              <AdminLogin onAdminChange={onAdminChange} />
+            </div>
           </div>
         </div>
-        
-        {/* Badge de Admin Logado */}
-        {isAdmin && (
-          <div className="flex justify-center mt-1.5 sm:mt-2">
-            <span className="bg-green-900 text-green-300 text-xs font-medium px-2 py-0.5 rounded-full">
-              🔓 Modo Admin
-            </span>
-          </div>
-        )}
-      </div>
-    </header>
+      </header>
+      
+      {/* Badge de Admin abaixo do header */}
+      {isAdmin && (
+        <div className="fixed top-[52px] left-0 right-0 z-[9998] flex justify-center py-1 bg-slate-800/90 border-b border-slate-700">
+          <span className="bg-emerald-900/50 text-emerald-300 text-xs font-medium px-2.5 py-0.5 rounded-full border border-emerald-700">
+            🔓 Modo Admin
+          </span>
+        </div>
+      )}
+    </>
   );
 };
 

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
@@ -14,10 +14,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Elma Chips - Gestão de Pedidos",
-  description: "Sistema de gestão de pedidos para Elma Chips. Gerencie produtos e gere cupons de pedidos.",
-  keywords: ["Elma Chips", "Gestão", "Pedidos", "Produtos"],
-  authors: [{ name: "Elma Chips" }],
+  title: "Doce Mania - Gestão de Vendas",
+  description: "Sistema de gestão de vendas para Doce Mania. Gerencie produtos e vendas.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -27,8 +32,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
+      <head>
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-900 text-white`}
       >
         {children}
         <Toaster position="top-center" richColors />
