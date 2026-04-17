@@ -9,9 +9,8 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, Trash2, Receipt, Calendar, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { History, Trash2, Receipt, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SaleItem {
@@ -48,13 +47,15 @@ const paymentLabels: Record<string, string> = {
   '30d': '📅 30 dias',
 };
 
+type FilterType = 'dia' | 'semana' | 'mes' | 'total';
+
 const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [couponImage, setCouponImage] = useState<string | null>(null);
   const [expandedSale, setExpandedSale] = useState<string | null>(null);
-  const [dateFilter, setDateFilter] = useState<string>('');
+  const [filter, setFilter] = useState<FilterType>('dia');
 
   const fetchSales = useCallback(async () => {
     setLoading(true);
@@ -94,13 +95,56 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     }
   }, [isAdmin]);
 
+  // Função para obter início da semana (domingo)
+  const getWeekStart = (date: Date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    d.setDate(d.getDate() - day);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
+  // Função para obter início do mês
+  const getMonthStart = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+  };
+
   const filteredSales = useMemo(() => {
-    if (!dateFilter) return sales;
-    return sales.filter(sale => {
-      const saleDate = new Date(sale.created_at).toISOString().split('T')[0];
-      return saleDate === dateFilter;
-    });
-  }, [sales, dateFilter]);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+    switch (filter) {
+      case 'dia':
+        return sales.filter(sale => {
+          const saleDate = new Date(sale.created_at);
+          return saleDate >= todayStart;
+        });
+      case 'semana':
+        const weekStart = getWeekStart(now);
+        return sales.filter(sale => {
+          const saleDate = new Date(sale.created_at);
+          return saleDate >= weekStart;
+        });
+      case 'mes':
+        const monthStart = getMonthStart(now);
+        return sales.filter(sale => {
+          const saleDate = new Date(sale.created_at);
+          return saleDate >= monthStart;
+        });
+      case 'total':
+      default:
+        return sales;
+    }
+  }, [sales, filter]);
+
+  const getFilterLabel = () => {
+    switch (filter) {
+      case 'dia': return 'Hoje';
+      case 'semana': return 'Esta Semana';
+      case 'mes': return 'Este Mês';
+      case 'total': return 'Total';
+    }
+  };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -170,10 +214,13 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     setCouponImage(imageData);
   }, []);
 
-  // Calcular total do dia filtrado
-  const dailyTotal = useMemo(() => {
+  // Calcular total filtrado
+  const filteredTotal = useMemo(() => {
     return filteredSales.reduce((sum, sale) => sum + sale.total_value, 0);
   }, [filteredSales]);
+
+  // Contar vendas filtradas
+  const filteredCount = filteredSales.length;
 
   return (
     <>
@@ -191,47 +238,61 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
             <SheetTitle className="text-lg text-white">Histórico de Vendas</SheetTitle>
           </SheetHeader>
           
-          {/* Filtro por data */}
-          <div className="flex items-center gap-2 py-3 border-b border-gray-700">
-            <Calendar className="h-4 w-4 text-gray-400" />
-            <Input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="h-9 bg-gray-700 border-gray-600 text-white"
-            />
-            {dateFilter && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDateFilter('')}
-                className="h-9 px-2 text-gray-400 hover:text-white"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
+          {/* Filtros: Dia, Semana, Mês, Total */}
+          <div className="flex gap-1 py-3 border-b border-gray-700">
+            <Button
+              variant={filter === 'dia' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('dia')}
+              className={`flex-1 h-9 text-xs sm:text-sm ${filter === 'dia' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border-gray-600 text-gray-300 hover:bg-gray-700'}`}
+            >
+              Dia
+            </Button>
+            <Button
+              variant={filter === 'semana' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('semana')}
+              className={`flex-1 h-9 text-xs sm:text-sm ${filter === 'semana' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border-gray-600 text-gray-300 hover:bg-gray-700'}`}
+            >
+              Semana
+            </Button>
+            <Button
+              variant={filter === 'mes' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('mes')}
+              className={`flex-1 h-9 text-xs sm:text-sm ${filter === 'mes' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border-gray-600 text-gray-300 hover:bg-gray-700'}`}
+            >
+              Mês
+            </Button>
+            <Button
+              variant={filter === 'total' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('total')}
+              className={`flex-1 h-9 text-xs sm:text-sm ${filter === 'total' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border-gray-600 text-gray-300 hover:bg-gray-700'}`}
+            >
+              Total
+            </Button>
           </div>
 
-          {/* Total do dia */}
-          {filteredSales.length > 0 && (
-            <div className="flex justify-between items-center py-2 px-1 bg-gray-700/50 rounded-lg my-2">
-              <span className="text-sm text-gray-400">
-                {dateFilter ? 'Total filtrado' : 'Total do dia'}
-              </span>
-              <span className="text-lg font-bold text-green-400">
-                R$ {dailyTotal.toFixed(2)}
-              </span>
+          {/* Card de Total */}
+          <div className="bg-gradient-to-r from-gray-700/80 to-gray-600/60 rounded-xl p-4 my-3 border border-gray-600 shadow-lg">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm text-gray-400 font-medium">{getFilterLabel()}</span>
+              <span className="text-xs text-gray-500">{filteredCount} venda{filteredCount !== 1 ? 's' : ''}</span>
             </div>
-          )}
+            <div className="text-3xl font-bold text-green-400">
+              R$ {filteredTotal.toFixed(2)}
+            </div>
+          </div>
 
-          <ScrollArea className="h-[calc(100%-140px)] mt-2">
+          <ScrollArea className="h-[calc(100%-180px)] mt-2">
             {loading ? (
               <div className="text-center py-8 text-gray-400">
                 Carregando...
               </div>
             ) : filteredSales.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
-                {dateFilter ? 'Nenhuma venda nesta data' : 'Nenhuma venda registrada'}
+                Nenhuma venda encontrada
               </div>
             ) : (
               <div className="space-y-3 pb-4">
@@ -341,7 +402,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
         </SheetContent>
       </Sheet>
 
-      {/* Modal de Cupom - Corrigido para responsividade */}
+      {/* Modal de Cupom */}
       {couponImage && (
         <div 
           className="fixed inset-0 z-[10000] bg-black/90 flex items-center justify-center p-4"
@@ -350,16 +411,19 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
           <div className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center">
             {/* Botão fechar no topo, fora da imagem */}
             <button
-              className="mb-3 px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm font-medium hover:bg-gray-700 transition-colors flex items-center gap-2"
-              onClick={() => setCouponImage(null)}
+              className="mb-3 px-6 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm font-medium hover:bg-gray-700 transition-colors flex items-center gap-2 active:bg-gray-600"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCouponImage(null);
+              }}
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
               Fechar
             </button>
             <img 
               src={couponImage} 
               alt="Cupom" 
-              className="max-w-full max-h-[calc(90vh-60px)] rounded-lg shadow-2xl"
+              className="max-w-full max-h-[calc(90vh-80px)] rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
           </div>

@@ -286,15 +286,15 @@ export default function Home() {
           <Textarea
             readOnly
             value={allProductsText}
-            rows={10}
-            className="mb-3 font-mono bg-slate-700/50 text-slate-300 border-slate-600 resize-none overflow-x-hidden text-xs rounded-lg"
+            rows={16}
+            className="mb-3 font-mono bg-slate-700/50 text-slate-300 border-slate-600 resize-none overflow-y-auto overflow-x-hidden text-xs rounded-lg"
           />
           
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <CopyToClipboardButton
               textToCopy={allProductsText}
               buttonText="Copiar"
-              className="flex-1 h-12 bg-slate-700 hover:bg-slate-600 text-white border-slate-600"
+              className="h-12 bg-slate-700 hover:bg-slate-600 text-white border-slate-600 text-xs sm:text-sm"
               variant="outline"
             />
             <RegisterSaleButton

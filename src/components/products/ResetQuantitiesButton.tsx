@@ -47,11 +47,10 @@ const ResetQuantitiesButton: React.FC<ResetQuantitiesButtonProps> = ({ fetchProd
     <>
       <Button 
         variant="outline" 
-        size="sm" 
         onClick={() => setIsOpen(true)} 
-        className="bg-yellow-600 hover:bg-yellow-700 text-white h-9 px-3 text-xs border-yellow-500"
+        className="w-full bg-yellow-600 hover:bg-yellow-700 text-white h-12 text-xs sm:text-sm border-yellow-500"
       >
-        <RotateCcw className="h-3 w-3 mr-1" />
+        <RotateCcw className="h-4 w-4 sm:mr-2" />
         Zerar
       </Button>
 
