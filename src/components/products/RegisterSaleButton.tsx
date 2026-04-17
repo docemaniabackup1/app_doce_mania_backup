@@ -27,7 +27,6 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Filtrar produtos com quantidade > 0
   const productsToSell = products.filter(p => p.quantity > 0);
   const totalValue = productsToSell.reduce((sum, p) => sum + p.price * p.quantity, 0);
   const totalItems = productsToSell.reduce((sum, p) => sum + p.quantity, 0);
@@ -64,7 +63,6 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
         throw new Error(data.error || 'Erro ao registrar venda');
       }
 
-      // Mostrar sucesso
       setIsOpen(false);
       setShowSuccess(true);
       
@@ -85,7 +83,7 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
     <>
       <Button
         onClick={handleOpenDialog}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+        className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white h-11 sm:h-10"
         disabled={productsToSell.length === 0}
       >
         <ShoppingCart className="h-4 w-4 mr-2" />
@@ -93,7 +91,7 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Confirmar Venda</DialogTitle>
           </DialogHeader>
@@ -102,8 +100,8 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
             <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
               {productsToSell.map(p => (
                 <div key={p.id} className="flex justify-between text-sm">
-                  <span>{p.name}</span>
-                  <span className="text-muted-foreground">
+                  <span className="truncate pr-2">{p.name}</span>
+                  <span className="text-muted-foreground shrink-0">
                     {p.quantity}x R$ {p.price.toFixed(2)} = R$ {(p.quantity * p.price).toFixed(2)}
                   </span>
                 </div>
@@ -125,14 +123,14 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
               <Button
                 variant="outline"
                 onClick={() => setIsOpen(false)}
-                className="flex-1"
+                className="flex-1 h-11 sm:h-10"
                 disabled={isLoading}
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleConfirmSale}
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-1 bg-green-600 hover:bg-green-700 h-11 sm:h-10"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -145,9 +143,8 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de sucesso */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent className="sm:max-w-xs text-center">
+        <DialogContent className="sm:max-w-xs w-[90vw] text-center">
           <div className="py-6 flex flex-col items-center">
             <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
             <p className="text-lg font-semibold">Venda Registrada!</p>

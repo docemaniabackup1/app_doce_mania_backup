@@ -35,10 +35,10 @@ const ResetQuantitiesButton: React.FC<ResetQuantitiesButtonProps> = ({ fetchProd
       variant="outline" 
       size="sm" 
       onClick={handleResetQuantities} 
-      className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs h-9"
+      className="bg-red-600 hover:bg-red-700 text-white h-11 sm:h-10 px-3 sm:px-4"
     >
-      <RotateCcw className="h-3 w-3 mr-1" />
-      Zerar
+      <RotateCcw className="h-4 w-4 sm:mr-1" />
+      <span className="hidden sm:inline">Zerar Quantidades</span>
     </Button>
   );
 };

@@ -126,17 +126,17 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <button
-          className="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 transition-all touch-manipulation"
+          className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-all touch-manipulation"
           aria-label="Histórico de vendas"
         >
           <History className="h-5 w-5" />
         </button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-[85vh]">
-        <SheetHeader>
-          <SheetTitle>Histórico de Vendas</SheetTitle>
+      <SheetContent side="bottom" className="h-[85vh] sm:h-[80vh] sm:max-w-lg sm:m-auto sm:rounded-lg">
+        <SheetHeader className="pb-2">
+          <SheetTitle className="text-lg">Histórico de Vendas</SheetTitle>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100%-60px)] mt-4">
+        <ScrollArea className="h-[calc(100%-60px)] mt-2">
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">
               Carregando...
@@ -146,21 +146,21 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
               Nenhuma venda registrada
             </div>
           ) : (
-            <div className="space-y-3 pb-4">
+            <div className="space-y-2 pb-4">
               {logs.map((log) => (
                 <div
                   key={log.id}
                   className="bg-card border rounded-lg p-3"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-semibold text-sm">{log.product_name}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm truncate">{log.product_name}</p>
                       <p className="text-xs text-muted-foreground">
                         {formatDate(log.created_at)}
                       </p>
                     </div>
                     {isAdmin && (
-                      <div className="flex gap-1">
+                      <div className="flex gap-0.5 shrink-0 ml-2">
                         {editingId === log.id ? (
                           <>
                             <Button
@@ -212,7 +212,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                           type="number"
                           value={editQuantity}
                           onChange={(e) => setEditQuantity(parseInt(e.target.value) || 0)}
-                          className="h-8"
+                          className="h-9"
                           min={0}
                         />
                       </div>
@@ -222,7 +222,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                           type="number"
                           value={editPrice}
                           onChange={(e) => setEditPrice(parseFloat(e.target.value) || 0)}
-                          className="h-8"
+                          className="h-9"
                           min={0}
                           step="0.01"
                         />
@@ -240,7 +240,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                   )}
                   
                   {log.client_name && (
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-1 truncate">
                       Cliente: {log.client_name}
                     </p>
                   )}

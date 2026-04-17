@@ -259,15 +259,18 @@ export default function Home() {
   // Contar produtos visíveis
   const visibleCount = products.filter(p => isAdmin || p.stock > 0).length;
 
+  // Calcular padding top baseado no header
+  const headerPadding = isAdmin ? 'pt-28 sm:pt-24' : 'pt-20 sm:pt-20';
+
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background">
       <Header products={products} isAdmin={isAdmin} onAdminChange={handleAdminChange} />
       
-      <main className="container mx-auto p-3 pt-16 max-w-lg">
+      <main className={`container mx-auto px-3 sm:px-4 pb-24 max-w-4xl ${headerPadding}`}>
         {/* Área do Cupom */}
-        <div className="mb-4 p-3 border rounded-lg bg-card shadow-sm">
+        <div className="mb-4 p-3 sm:p-4 border rounded-lg bg-card shadow-sm">
           <div className="mb-3">
-            <Label htmlFor="client-name" className="block text-xs font-medium text-muted-foreground mb-1">
+            <Label htmlFor="client-name" className="block text-sm font-medium text-muted-foreground mb-1">
               Nome do Cliente
             </Label>
             <Input
@@ -276,7 +279,7 @@ export default function Home() {
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="Digite o nome"
-              className="h-10 text-base"
+              className="h-11 sm:h-10 text-base"
               maxLength={50}
             />
           </div>
@@ -284,15 +287,15 @@ export default function Home() {
           <Textarea
             readOnly
             value={allProductsText}
-            rows={12}
-            className="mb-2 font-mono bg-muted text-muted-foreground resize-none overflow-x-hidden text-xs"
+            rows={10}
+            className="mb-3 font-mono bg-muted text-muted-foreground resize-none overflow-x-hidden text-xs"
           />
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-col sm:flex-row">
             <CopyToClipboardButton
               textToCopy={allProductsText}
-              buttonText="Copiar"
-              className="flex-1"
+              buttonText="Copiar Cupom"
+              className="flex-1 h-11 sm:h-10"
             />
             <RegisterSaleButton
               products={products}
@@ -304,8 +307,12 @@ export default function Home() {
 
         {/* Botões de Ação */}
         <div className="mb-4 flex gap-2">
-          <Button onClick={handleAddProduct} size="sm" className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs h-9">
-            <Plus className="h-3 w-3 mr-1" /> Adicionar
+          <Button 
+            onClick={handleAddProduct} 
+            size="sm" 
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white h-11 sm:h-10"
+          >
+            <Plus className="h-4 w-4 mr-1" /> Adicionar Produto
           </Button>
           <ResetQuantitiesButton fetchProducts={fetchProducts} />
         </div>
@@ -320,7 +327,7 @@ export default function Home() {
             {isAdmin ? 'Nenhum produto cadastrado' : 'Nenhum produto disponível'}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {productCards}
           </div>
         )}

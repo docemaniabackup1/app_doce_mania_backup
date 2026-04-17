@@ -72,7 +72,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   }, [product.id, product.quantity, onQuantityChange]);
 
   const handleIncrementQuantity = useCallback(() => {
-    // Verificar limite de estoque para vendedor
     if (!isAdmin && product.quantity >= product.stock) {
       return;
     }
@@ -98,7 +97,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
     } else {
       const newQuantity = parseInt(value, 10);
       if (!isNaN(newQuantity) && newQuantity >= 0) {
-        // Limitar ao estoque disponível para vendedor
         if (!isAdmin && newQuantity > product.stock) {
           onQuantityChange(product.id, product.stock);
         } else {
@@ -129,19 +127,17 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
     onDelete(product.id);
   }, [product.id, onDelete]);
 
-  // Indicador de estoque baixo
   const isLowStock = product.stock <= 5 && product.stock > 0;
   const isOutOfStock = product.stock === 0;
 
-  // Se está escondido, não renderiza
   if (isHidden) {
     return null;
   }
 
   return (
-    <Card className={`w-full max-w-sm relative group ${
+    <Card className={`w-full relative group touch-manipulation ${
       isOutOfStock ? 'opacity-50 border-red-300' : 
-      isLowStock ? 'border-yellow-300' : ''
+      isLowStock ? 'border-yellow-400 bg-yellow-50/50' : ''
     }`}>
       {/* Indicador de loading */}
       {isPending && (
@@ -151,11 +147,11 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
       )}
 
       {/* Botões de Reordenação */}
-      <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex flex-col space-y-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 bg-background rounded-full border shadow-sm p-1">
+      <div className="absolute -left-2 sm:-left-3 top-1/2 -translate-y-1/2 flex flex-col space-y-0.5 opacity-100 z-10 bg-background rounded-full border shadow-sm p-0.5 sm:p-1">
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-6 w-6 rounded-full" 
+          className="h-7 w-7 sm:h-8 sm:w-8 rounded-full" 
           onClick={onMoveUp}
           disabled={isFirst}
           aria-label="Mover para cima"
@@ -165,7 +161,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-6 w-6 rounded-full" 
+          className="h-7 w-7 sm:h-8 sm:w-8 rounded-full" 
           onClick={onMoveDown}
           disabled={isLast}
           aria-label="Mover para baixo"
@@ -174,37 +170,37 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
         </Button>
       </div>
 
-      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+      <CardHeader className="pb-2 flex flex-row items-center justify-between px-3 sm:px-6">
         {isEditingName ? (
           <Input
             value={editedName}
             onChange={(e) => setEditedName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="text-base font-semibold mr-2"
+            className="text-base font-semibold mr-2 h-9 sm:h-10"
             autoFocus
             maxLength={100}
           />
         ) : (
-          <CardTitle className="text-base font-semibold truncate" title={product.name}>
+          <CardTitle className="text-base sm:text-lg font-semibold truncate pr-2" title={product.name}>
             {product.name}
           </CardTitle>
         )}
-        <div className="flex space-x-1">
+        <div className="flex space-x-0.5 sm:space-x-1 shrink-0">
           {isEditingName ? (
             <>
-              <Button variant="ghost" size="icon" onClick={handleSaveName} aria-label="Salvar" className="h-8 w-8">
+              <Button variant="ghost" size="icon" onClick={handleSaveName} aria-label="Salvar" className="h-9 w-9 sm:h-10 sm:w-10">
                 <Check className="h-4 w-4 text-green-600" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleCancelEdit} aria-label="Cancelar" className="h-8 w-8">
+              <Button variant="ghost" size="icon" onClick={handleCancelEdit} aria-label="Cancelar" className="h-9 w-9 sm:h-10 sm:w-10">
                 <X className="h-4 w-4 text-red-600" />
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label="Editar nome" className="h-8 w-8">
+              <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label="Editar nome" className="h-9 w-9 sm:h-10 sm:w-10">
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleDelete} aria-label="Deletar produto" className="h-8 w-8">
+              <Button variant="ghost" size="icon" onClick={handleDelete} aria-label="Deletar produto" className="h-9 w-9 sm:h-10 sm:w-10">
                 <Trash2 className="h-4 w-4" />
               </Button>
             </>
@@ -212,10 +208,10 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 px-3 sm:px-6 pb-4">
         {/* Preço */}
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">
             Preço
           </label>
           <Input
@@ -224,13 +220,13 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
             onChange={handlePriceChange}
             min={0}
             step="0.01"
-            className="h-10 text-base"
+            className="h-11 sm:h-10 text-base"
           />
         </div>
 
         {/* Quantidade na venda */}
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">
             Quantidade {isAdmin && '(venda)'}
           </label>
           <div className="flex items-center">
@@ -238,7 +234,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               variant="outline" 
               size="icon" 
               onClick={handleDecrementQuantity} 
-              className="h-10 w-10 rounded-r-none text-lg"
+              className="h-11 w-11 sm:h-10 sm:w-10 rounded-r-none text-lg touch-manipulation"
               aria-label="Diminuir quantidade"
             >
               <Minus className="h-5 w-5" />
@@ -247,7 +243,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               type="number"
               value={product.quantity}
               onChange={handleQuantityInputChange}
-              className="flex-1 text-center rounded-none border-x-0 h-10 text-base"
+              className="flex-1 text-center rounded-none border-x-0 h-11 sm:h-10 text-base"
               min={0}
               max={!isAdmin ? product.stock : undefined}
             />
@@ -255,7 +251,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               variant="outline" 
               size="icon" 
               onClick={handleIncrementQuantity} 
-              className="h-10 w-10 rounded-l-none text-lg"
+              className="h-11 w-11 sm:h-10 sm:w-10 rounded-l-none text-lg touch-manipulation"
               aria-label="Aumentar quantidade"
               disabled={!isAdmin && product.quantity >= product.stock}
             >
@@ -267,7 +263,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
         {/* Estoque (apenas admin) */}
         {isAdmin && (
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">
               <Package className="h-3 w-3 inline mr-1" />
               Estoque
             </label>
@@ -276,13 +272,13 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               value={product.stock}
               onChange={handleStockChange}
               min={0}
-              className="h-10 text-base"
+              className="h-11 sm:h-10 text-base"
             />
           </div>
         )}
 
         {/* Indicador de estoque */}
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Disponível:</span>
           <span className={`font-medium ${
             isOutOfStock ? 'text-red-600' : 
