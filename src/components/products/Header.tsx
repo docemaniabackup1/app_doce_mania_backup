@@ -38,51 +38,49 @@ const Header: React.FC<HeaderProps> = ({ products, isAdmin, onAdminChange }) => 
   const totalQuantity = products.reduce((sum, product) => sum + product.quantity, 0);
 
   return (
-    <>
-      <header 
-        className="fixed top-0 left-0 right-0 z-[9999] bg-slate-800 border-b border-slate-700 shadow-xl safe-area-top"
-      >
-        <div className="w-full max-w-4xl mx-auto px-2 sm:px-3 py-2">
-          <div className="flex items-center justify-between h-10">
-            {/* Esquerda - Hora */}
-            <div className="text-sm font-medium text-slate-400 min-w-[40px]">
-              {currentTime}
-            </div>
+    <header className="fixed top-0 left-0 right-0 z-[9999] bg-slate-900 border-b border-slate-700/80 shadow-lg">
+      {/* Linha Principal */}
+      <div className="w-full max-w-4xl mx-auto px-3 py-2">
+        <div className="flex items-center justify-between">
+          {/* Esquerda - Hora */}
+          <div className="flex items-center gap-2 min-w-[60px]">
+            <span className="text-sm font-medium text-slate-500">{currentTime}</span>
+          </div>
 
-            {/* Centro - Totais */}
-            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-              <div 
-                className="text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-sm sm:text-base font-bold shadow-sm min-w-[75px] sm:min-w-[85px] text-center"
-                style={{ backgroundColor: '#16a34a' }}
-              >
-                R$ {totalOrderValue.toFixed(2)}
-              </div>
-              <div 
-                className="text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-sm sm:text-base font-bold shadow-sm min-w-[40px] sm:min-w-[45px] text-center"
-                style={{ backgroundColor: '#2563eb' }}
-              >
-                {totalQuantity}
-              </div>
+          {/* Centro - Logo e Totais */}
+          <div className="flex items-center gap-3">
+            {/* Quantidade */}
+            <div className="flex items-center gap-1.5 bg-blue-600/20 px-2.5 py-1 rounded-lg">
+              <span className="text-xs text-blue-300 font-medium">Itens</span>
+              <span className="text-base font-bold text-blue-400">{totalQuantity}</span>
             </div>
+            
+            {/* Total em Destaque */}
+            <div className="bg-emerald-500 px-4 py-1.5 rounded-lg shadow-lg">
+              <span className="text-base font-bold text-white">R$ {totalOrderValue.toFixed(2)}</span>
+            </div>
+          </div>
 
-            {/* Direita - Admin e Histórico */}
-            <div className="flex items-center gap-1 min-w-[40px] justify-end">
-              <SaleLogsSheet isAdmin={isAdmin} />
-              <AdminLogin onAdminChange={onAdminChange} />
-            </div>
+          {/* Direita - Ações */}
+          <div className="flex items-center gap-1.5 min-w-[60px] justify-end">
+            <SaleLogsSheet isAdmin={isAdmin} />
+            <AdminLogin onAdminChange={onAdminChange} />
           </div>
         </div>
-        
-        {/* Badge de Admin dentro do header */}
-        {isAdmin && (
-          <div className="flex justify-center pb-1.5 pt-0.5 border-t border-slate-700/50">
-            <span className="bg-emerald-900/50 text-emerald-300 text-xs font-medium px-2.5 py-0.5 rounded-full border border-emerald-700">
-              🔓 Admin
+      </div>
+      
+      {/* Badge de Admin */}
+      {isAdmin && (
+        <div className="bg-emerald-900/40 border-t border-emerald-800/50 py-1 px-3">
+          <div className="w-full max-w-4xl mx-auto flex justify-center">
+            <span className="text-xs font-medium text-emerald-300 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+              Modo Administrador
             </span>
           </div>
-        )}
-      </header>
-    </>
+        </div>
+      )}
+    </header>
   );
 };
 

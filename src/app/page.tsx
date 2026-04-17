@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import CopyToClipboardButton from '@/components/products/CopyToClipboardButton';
 import ResetQuantitiesButton from '@/components/products/ResetQuantitiesButton';
 import RegisterSaleButton from '@/components/products/RegisterSaleButton';
-import { Plus } from 'lucide-react';
+import { Plus, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Product } from '@/lib/supabase';
 
@@ -258,81 +258,100 @@ export default function Home() {
   // Contar produtos visíveis
   const visibleCount = products.filter(p => isAdmin || p.stock > 0).length;
 
+  // Calcular altura do header
+  const headerHeight = isAdmin ? 'pt-[68px]' : 'pt-[52px]';
+
   return (
     <div className="min-h-screen bg-slate-900 overflow-x-hidden">
       <Header products={products} isAdmin={isAdmin} onAdminChange={handleAdminChange} />
       
-      <main className="w-full max-w-4xl mx-auto px-3 sm:px-4 pt-[72px] sm:pt-[64px] pb-20">
-        {/* Área do Cupom */}
-        <div className="mb-4 p-3 sm:p-4 border border-slate-700 rounded-xl bg-slate-800 shadow-lg">
-          <div className="mb-3">
-            <Label htmlFor="client-name" className="block text-sm font-medium text-slate-400 mb-1.5">
-              Nome do Cliente *
-            </Label>
-            <Input
-              id="client-name"
-              type="text"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value.toUpperCase())}
-              placeholder="Digite o nome (obrigatório)"
-              className="h-11 text-base bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 uppercase font-medium"
-              maxLength={50}
-            />
+      <main className={`w-full max-w-4xl mx-auto px-3 sm:px-4 ${headerHeight} pb-24`}>
+        {/* Seção: Cliente e Ações */}
+        <section className="mb-4 mt-2">
+          {/* Nome do Cliente em Destaque */}
+          <div className="bg-slate-800 rounded-xl p-3 border border-slate-700/50 shadow-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <User className="h-4 w-4 text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <Input
+                  type="text"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value.toUpperCase())}
+                  placeholder="Nome do cliente *"
+                  className="h-10 text-base bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 uppercase font-semibold"
+                  maxLength={50}
+                />
+              </div>
+            </div>
+            
+            {/* Botões de Ação em Grid */}
+            <div className="grid grid-cols-3 gap-2">
+              <RegisterSaleButton
+                products={products}
+                clientName={clientName}
+                couponText={allProductsText}
+                onSuccess={handleSaleSuccess}
+              />
+              <CopyToClipboardButton
+                textToCopy={allProductsText}
+                buttonText="Copiar"
+                className="h-11 bg-slate-700 hover:bg-slate-600 text-white border-slate-600 text-sm"
+                variant="outline"
+              />
+              <ResetQuantitiesButton fetchProducts={fetchProducts} />
+            </div>
           </div>
           
-          <Textarea
-            readOnly
-            value={allProductsText}
-            rows={8}
-            className="mb-3 font-mono bg-slate-700/50 text-slate-300 border-slate-600 resize-none overflow-x-hidden text-xs rounded-lg"
-          />
-          
-          {/* Botões em grid para mobile */}
-          <div className="grid grid-cols-2 gap-2">
-            <CopyToClipboardButton
-              textToCopy={allProductsText}
-              buttonText="Copiar"
-              className="h-11 bg-slate-700 hover:bg-slate-600 text-white border-slate-600 text-sm"
-              variant="outline"
+          {/* Cupom Preview Colapsável */}
+          <details className="mt-2">
+            <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400 py-1.5 text-center">
+              Visualizar cupom ▼
+            </summary>
+            <Textarea
+              readOnly
+              value={allProductsText}
+              rows={8}
+              className="mt-2 font-mono bg-slate-800 text-slate-400 border-slate-700 resize-none overflow-x-hidden text-[10px] rounded-lg"
             />
-            <RegisterSaleButton
-              products={products}
-              clientName={clientName}
-              couponText={allProductsText}
-              onSuccess={handleSaleSuccess}
-            />
-          </div>
-          <div className="mt-2">
-            <ResetQuantitiesButton fetchProducts={fetchProducts} />
-          </div>
-        </div>
+          </details>
+        </section>
 
         {/* Botão de Adicionar Produto - Apenas Admin */}
         {isAdmin && (
-          <div className="mb-4">
+          <section className="mb-4">
             <Button 
               onClick={handleAddProduct} 
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm"
+              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl shadow-lg"
             >
               <Plus className="h-4 w-4 mr-2" /> Adicionar Produto
             </Button>
-          </div>
+          </section>
         )}
 
-        {/* Lista de Produtos */}
-        {loading ? (
-          <div className="text-center text-slate-400 py-8">
-            Carregando produtos...
+        {/* Seção: Produtos */}
+        <section>
+          {/* Título da Seção */}
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Produtos</h2>
+            <span className="text-xs text-slate-500">{visibleCount} disponíveis</span>
           </div>
-        ) : visibleCount === 0 ? (
-          <div className="text-center text-slate-400 py-8">
-            {isAdmin ? 'Nenhum produto cadastrado' : 'Nenhum produto disponível'}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {productCards}
-          </div>
-        )}
+
+          {loading ? (
+            <div className="text-center text-slate-400 py-12">
+              <div className="animate-pulse">Carregando produtos...</div>
+            </div>
+          ) : visibleCount === 0 ? (
+            <div className="text-center text-slate-500 py-12 bg-slate-800/50 rounded-xl border border-slate-700/50">
+              {isAdmin ? 'Nenhum produto cadastrado' : 'Nenhum produto disponível'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+              {productCards}
+            </div>
+          )}
+        </section>
       </main>
       
       <Footer />

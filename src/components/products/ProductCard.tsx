@@ -3,7 +3,7 @@
 import React, { useState, useCallback, memo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Check, X, Minus, Plus, ChevronUp, ChevronDown, Loader2, Package } from 'lucide-react';
+import { Pencil, Trash2, Check, X, ChevronUp, ChevronDown, Loader2, Package } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -86,7 +86,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
     onQuantityChange(product.id, newQty);
   }, [product.quantity, product.stock, isAdmin, product.id, onQuantityChange]);
 
-  const handlePriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePriceChangeInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPriceInput(value);
     let cleanValue = value.trim();
@@ -108,7 +108,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   // Input de quantidade - permite digitar livremente
   const handleQuantityInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Permite apenas números
     if (value === '' || /^\d+$/.test(value)) {
       setQuantityInput(value);
     }
@@ -157,143 +156,140 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   }
 
   return (
-    <div className={`relative rounded-xl overflow-hidden transition-all border ${
-      isOutOfStock ? 'opacity-60 border-gray-700' : 'border-slate-600'
+    <div className={`relative rounded-xl overflow-hidden transition-all border shadow-md ${
+      isOutOfStock ? 'opacity-50 border-slate-700' : 'border-slate-600/50'
     }`} style={{ backgroundColor: '#1e293b' }}>
       {isPending && (
-        <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center z-20 rounded-xl">
-          <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+        <div className="absolute inset-0 bg-slate-900/80 flex items-center justify-center z-20 rounded-xl">
+          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
         </div>
       )}
 
-      {/* Header com nome */}
-      <div className="px-3 pt-3 pb-2 flex items-center justify-between border-b border-slate-700/50">
+      {/* Nome do Produto */}
+      <div className="px-2.5 pt-2.5 pb-2 border-b border-slate-700/30">
         {isEditingName ? (
-          <Input
-            value={editedName}
-            onChange={(e) => setEditedName(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="text-sm font-semibold h-9 bg-gray-700 border-gray-600 text-white"
-            autoFocus
-            maxLength={100}
-          />
+          <div className="flex gap-1">
+            <Input
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="text-xs font-semibold h-8 bg-slate-700 border-slate-600 text-white"
+              autoFocus
+              maxLength={100}
+            />
+            <Button variant="ghost" size="icon" onClick={handleSaveName} className="h-8 w-8 hover:bg-slate-700">
+              <Check className="h-3 w-3 text-green-400" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8 hover:bg-slate-700">
+              <X className="h-3 w-3 text-red-400" />
+            </Button>
+          </div>
         ) : (
-          <h3 className="text-sm font-bold text-white truncate flex-1 pr-2" title={product.name}>
-            {product.name}
-          </h3>
-        )}
-        
-        {isAdmin && (
-          <div className="flex gap-0.5 shrink-0">
-            {isEditingName ? (
-              <>
-                <Button variant="ghost" size="icon" onClick={handleSaveName} className="h-7 w-7 hover:bg-gray-700">
-                  <Check className="h-3.5 w-3.5 text-green-400" />
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-white truncate flex-1" title={product.name}>
+              {product.name}
+            </h3>
+            {isAdmin && (
+              <div className="flex gap-0.5 shrink-0 ml-1">
+                <Button variant="ghost" size="icon" onClick={handleEditClick} className="h-6 w-6 hover:bg-slate-700 text-slate-400">
+                  <Pencil className="h-2.5 w-2.5" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-7 w-7 hover:bg-gray-700">
-                  <X className="h-3.5 w-3.5 text-red-400" />
+                <Button variant="ghost" size="icon" onClick={handleDelete} className="h-6 w-6 hover:bg-slate-700 text-slate-400">
+                  <Trash2 className="h-2.5 w-2.5" />
                 </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="ghost" size="icon" onClick={handleEditClick} className="h-7 w-7 hover:bg-gray-700 text-gray-400">
-                  <Pencil className="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={handleDelete} className="h-7 w-7 hover:bg-gray-700 text-gray-400">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={onMoveUp} disabled={isFirst} className="h-7 w-7 hover:bg-gray-700 text-gray-400">
-                  <ChevronUp className="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={onMoveDown} disabled={isLast} className="h-7 w-7 hover:bg-gray-700 text-gray-400">
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </>
+              </div>
             )}
           </div>
         )}
       </div>
       
-      {/* Conteúdo */}
-      <div className="px-3 py-3 space-y-2.5">
-        {/* Preço */}
-        <div>
-          <label className="block text-[10px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Preço Unit.</label>
+      {/* Preço */}
+      <div className="px-2.5 pt-2">
+        <div className="relative">
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[10px]">R$</span>
+          <Input
+            type="text"
+            inputMode="decimal"
+            value={priceInput}
+            onChange={handlePriceChangeInput}
+            onBlur={handlePriceBlur}
+            className="h-8 text-xs bg-slate-700/50 border-slate-600 text-white pl-7 font-medium"
+            placeholder="0,00"
+          />
+        </div>
+      </div>
+
+      {/* Quantidade */}
+      <div className="px-2.5 py-2">
+        <div className="flex items-center">
+          <button
+            type="button"
+            onClick={handleDecrementQuantity}
+            className="h-9 w-9 flex items-center justify-center rounded-l-lg text-white font-bold text-base active:scale-95 transition-transform"
+            style={{ backgroundColor: '#dc2626' }}
+          >
+            −
+          </button>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={quantityInput}
+            onChange={handleQuantityInputChange}
+            onBlur={handleQuantityBlur}
+            className="h-9 flex-1 text-center text-sm font-bold bg-slate-700/50 border-y border-slate-600 text-white focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={handleIncrementQuantity}
+            disabled={!isAdmin && product.quantity >= product.stock}
+            className="h-9 w-9 flex items-center justify-center rounded-r-lg text-white font-bold text-base active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: '#16a34a' }}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      {/* Admin: Estoque */}
+      {isAdmin && (
+        <div className="px-2.5 pb-2">
           <div className="relative">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm">R$</span>
-            <Input
-              type="text"
-              inputMode="decimal"
-              value={priceInput}
-              onChange={handlePriceChange}
-              onBlur={handlePriceBlur}
-              className="h-10 text-sm bg-gray-700/50 border-gray-600 text-white pl-9 font-medium"
-              placeholder="0,00"
-            />
-          </div>
-        </div>
-
-        {/* Quantidade */}
-        <div>
-          <label className="block text-[10px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Quantidade</label>
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={handleDecrementQuantity}
-              className="h-10 w-10 flex items-center justify-center rounded-l-lg text-white font-bold text-lg active:scale-95 transition-transform"
-              style={{ backgroundColor: '#dc2626' }}
-            >
-              −
-            </button>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={quantityInput}
-              onChange={handleQuantityInputChange}
-              onBlur={handleQuantityBlur}
-              className="h-10 flex-1 text-center text-base font-bold bg-gray-700/50 border-y border-gray-600 text-white focus:outline-none focus:ring-0"
-            />
-            <button
-              type="button"
-              onClick={handleIncrementQuantity}
-              disabled={!isAdmin && product.quantity >= product.stock}
-              className="h-10 w-10 flex items-center justify-center rounded-r-lg text-white font-bold text-lg active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#16a34a' }}
-            >
-              +
-            </button>
-          </div>
-        </div>
-
-        {/* Admin: Estoque */}
-        {isAdmin && (
-          <div>
-            <label className="block text-[10px] font-medium text-gray-500 mb-1 uppercase tracking-wider">
-              <Package className="h-3 w-3 inline mr-1" />
-              Estoque Total
-            </label>
+            <Package className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
             <Input
               type="number"
               value={product.stock}
               onChange={handleStockChange}
               min={0}
-              className="h-10 text-sm bg-gray-700/50 border-gray-600 text-white"
+              className="h-8 text-xs bg-slate-700/50 border-slate-600 text-white pl-7"
             />
           </div>
-        )}
-
-        {/* Disponível */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-700/50">
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider">Disponível</span>
-          <span className={`text-sm font-bold ${
-            isOutOfStock ? 'text-red-400' : 
-            isLowStock ? 'text-amber-400' : 
-            'text-emerald-400'
-          }`}>
-            {availableStock} un.
-          </span>
         </div>
+      )}
+
+      {/* Disponível */}
+      <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-800/50 border-t border-slate-700/30">
+        <span className="text-[9px] text-slate-500 uppercase tracking-wider">Disp.</span>
+        <span className={`text-xs font-bold ${
+          isOutOfStock ? 'text-red-400' : 
+          isLowStock ? 'text-amber-400' : 
+          'text-emerald-400'
+        }`}>
+          {availableStock}
+        </span>
       </div>
+      
+      {/* Admin: Controles de Ordem */}
+      {isAdmin && (
+        <div className="flex border-t border-slate-700/30">
+          <Button variant="ghost" size="sm" onClick={onMoveUp} disabled={isFirst} className="flex-1 h-7 rounded-none text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30">
+            <ChevronUp className="h-3 w-3" />
+          </Button>
+          <div className="w-px bg-slate-700/50"></div>
+          <Button variant="ghost" size="sm" onClick={onMoveDown} disabled={isLast} className="flex-1 h-7 rounded-none text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30">
+            <ChevronDown className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 });

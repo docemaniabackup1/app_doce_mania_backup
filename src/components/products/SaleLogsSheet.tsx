@@ -7,12 +7,10 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  SheetClose,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, Trash2, Receipt, Calendar, X } from 'lucide-react';
+import { History, Trash2, Receipt, TrendingUp, Calendar, X, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SaleItem {
@@ -40,6 +38,8 @@ interface SaleLogsSheetProps {
   isAdmin: boolean;
 }
 
+type FilterPeriod = 'day' | 'week' | 'month' | 'total';
+
 const paymentLabels: Record<string, string> = {
   dinheiro: '💵 Dinheiro',
   pix: '📱 Pix',
@@ -54,7 +54,7 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [couponImage, setCouponImage] = useState<string | null>(null);
-  const [dateFilter, setDateFilter] = useState<string>('');
+  const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('day');
 
   const fetchSales = useCallback(async () => {
     setLoading(true);
@@ -94,13 +94,42 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     }
   }, [isAdmin]);
 
+  // Função para obter o início do período
+  const getPeriodStart = useCallback((period: FilterPeriod): Date => {
+    const now = new Date();
+    switch (period) {
+      case 'day':
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      case 'week':
+        const dayOfWeek = now.getDay();
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Ajuste para semana começar na segunda
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff);
+      case 'month':
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+      case 'total':
+      default:
+        return new Date(2020, 0, 1); // Data muito antiga para pegar tudo
+    }
+  }, []);
+
+  // Filtrar vendas por período
   const filteredSales = useMemo(() => {
-    if (!dateFilter) return sales;
+    const periodStart = getPeriodStart(filterPeriod);
     return sales.filter(sale => {
-      const saleDate = new Date(sale.created_at).toISOString().split('T')[0];
-      return saleDate === dateFilter;
+      const saleDate = new Date(sale.created_at);
+      return saleDate >= periodStart;
     });
-  }, [sales, dateFilter]);
+  }, [sales, filterPeriod, getPeriodStart]);
+
+  // Calcular totais
+  const stats = useMemo(() => {
+    const totalValue = filteredSales.reduce((sum, sale) => sum + sale.total_value, 0);
+    const totalSales = filteredSales.length;
+    const totalItems = filteredSales.reduce((sum, sale) => sum + sale.items_count, 0);
+    const averageTicket = totalSales > 0 ? totalValue / totalSales : 0;
+    
+    return { totalValue, totalSales, totalItems, averageTicket };
+  }, [filteredSales]);
 
   const formatDateShort = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -126,8 +155,8 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
   const getPaymentBadgeStyle = (type: string) => {
     const isVista = type === 'dinheiro' || type === 'pix';
     return isVista 
-      ? { bg: 'bg-emerald-900/60', text: 'text-emerald-300', border: 'border-emerald-700' }
-      : { bg: 'bg-amber-900/60', text: 'text-amber-300', border: 'border-amber-700' };
+      ? { bg: 'bg-emerald-500/20', text: 'text-emerald-300', border: 'border-emerald-500/30' }
+      : { bg: 'bg-amber-500/20', text: 'text-amber-300', border: 'border-amber-500/30' };
   };
 
   const showCouponImage = useCallback((sale: Sale) => {
@@ -163,68 +192,91 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
     setCouponImage(null);
   }, []);
 
-  // Calcular total do dia filtrado
-  const dailyTotal = useMemo(() => {
-    return filteredSales.reduce((sum, sale) => sum + sale.total_value, 0);
-  }, [filteredSales]);
+  // Labels dos períodos
+  const periodLabels: Record<FilterPeriod, string> = {
+    day: 'Hoje',
+    week: 'Semana',
+    month: 'Mês',
+    total: 'Total',
+  };
 
   return (
     <>
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
           <button
-            className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-all touch-manipulation"
+            className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 transition-all touch-manipulation"
             aria-label="Histórico de vendas"
           >
             <History className="h-5 w-5" />
           </button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="h-[90vh] sm:h-[85vh] sm:max-w-lg sm:m-auto sm:rounded-lg bg-gray-800 border-gray-700 text-white px-3">
-          <SheetHeader className="pb-2">
-            <SheetTitle className="text-lg text-white">Histórico de Vendas</SheetTitle>
+        <SheetContent side="bottom" className="h-[92vh] sm:h-[85vh] sm:max-w-lg sm:m-auto sm:rounded-t-2xl bg-slate-900 border-slate-700 text-white px-0">
+          <SheetHeader className="px-4 pb-0">
+            <SheetTitle className="text-lg text-white font-bold">Histórico de Vendas</SheetTitle>
           </SheetHeader>
           
-          {/* Filtro por data */}
-          <div className="flex items-center gap-2 py-3 border-b border-gray-700">
-            <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
-            <Input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="h-9 bg-gray-700 border-gray-600 text-white text-sm"
-            />
-            {dateFilter && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDateFilter('')}
-                className="h-9 px-2 text-gray-400 hover:text-white shrink-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
+          {/* Filtros de Período */}
+          <div className="px-4 py-3 border-b border-slate-700/50">
+            <div className="flex bg-slate-800 rounded-xl p-1">
+              {(['day', 'week', 'month', 'total'] as FilterPeriod[]).map((period) => (
+                <button
+                  key={period}
+                  onClick={() => setFilterPeriod(period)}
+                  className={`flex-1 py-2 px-2 rounded-lg text-sm font-medium transition-all ${
+                    filterPeriod === period
+                      ? 'bg-emerald-500 text-white shadow-lg'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {periodLabels[period]}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Total do dia */}
-          {filteredSales.length > 0 && (
-            <div className="flex justify-between items-center py-2 px-3 bg-gray-700/50 rounded-lg my-2">
-              <span className="text-sm text-gray-400">
-                {dateFilter ? 'Total filtrado' : 'Total do dia'}
-              </span>
-              <span className="text-lg font-bold text-green-400">
-                R$ {dailyTotal.toFixed(2)}
-              </span>
+          {/* Card de Total em Destaque */}
+          <div className="px-4 py-3">
+            <div className="bg-gradient-to-br from-emerald-600/30 to-emerald-800/20 rounded-2xl p-4 border border-emerald-500/30 shadow-xl">
+              {/* Total Principal */}
+              <div className="text-center mb-4">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <TrendingUp className="h-5 w-5 text-emerald-400" />
+                  <span className="text-xs text-emerald-300 uppercase tracking-widest font-medium">Total {periodLabels[filterPeriod]}</span>
+                </div>
+                <p className="text-4xl font-bold text-white">
+                  R$ {stats.totalValue.toFixed(2)}
+                </p>
+              </div>
+              
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-emerald-500/20">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-white">{stats.totalSales}</p>
+                  <p className="text-[10px] text-emerald-300/70 uppercase tracking-wider">Vendas</p>
+                </div>
+                <div className="text-center border-x border-emerald-500/20">
+                  <p className="text-2xl font-bold text-white">{stats.totalItems}</p>
+                  <p className="text-[10px] text-emerald-300/70 uppercase tracking-wider">Itens</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-white">R$ {stats.averageTicket.toFixed(0)}</p>
+                  <p className="text-[10px] text-emerald-300/70 uppercase tracking-wider">Ticket Médio</p>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
 
-          <ScrollArea className="h-[calc(100%-140px)] mt-2">
+          {/* Lista de Vendas */}
+          <ScrollArea className="h-[calc(100%-280px)] px-4">
             {loading ? (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-slate-400">
                 Carregando...
               </div>
             ) : filteredSales.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                {dateFilter ? 'Nenhuma venda nesta data' : 'Nenhuma venda registrada'}
+              <div className="text-center py-12 text-slate-500">
+                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p>Nenhuma venda neste período</p>
               </div>
             ) : (
               <div className="space-y-2 pb-4">
@@ -234,55 +286,45 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
                   return (
                     <div
                       key={sale.id}
-                      className="bg-gray-700/80 border border-gray-600 rounded-xl overflow-hidden shadow-lg p-3"
+                      className="bg-slate-800/80 border border-slate-700/50 rounded-xl overflow-hidden"
                     >
-                      {/* Card Simplificado - Sem detalhes de itens */}
-                      <div className="flex items-start justify-between gap-2">
-                        {/* Nome e Data */}
+                      <div className="p-3 flex items-center justify-between">
+                        {/* Info da Venda */}
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-base text-white truncate">{sale.client_name}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs px-2 py-0.5 bg-gray-600 rounded text-gray-300">
-                              {formatDateShort(sale.created_at)}
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-bold text-white truncate">{sale.client_name}</p>
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}>
+                              {sale.payment_type === 'dinheiro' ? '💰' : sale.payment_type === 'pix' ? '📱' : '📅'} {sale.payment_type.toUpperCase()}
                             </span>
-                            <span className="text-xs text-gray-400">
-                              {formatTime(sale.created_at)}
-                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <span>{formatDateShort(sale.created_at)}</span>
+                            <span>•</span>
+                            <span>{formatTime(sale.created_at)}</span>
+                            <span>•</span>
+                            <span>{sale.items_count} itens</span>
                           </div>
                         </div>
                         
-                        {/* Botões de ação */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 hover:bg-gray-600 text-gray-300"
-                            onClick={() => showCouponImage(sale)}
-                          >
-                            <Receipt className="h-4 w-4" />
-                          </Button>
-                          {isAdmin && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 hover:bg-red-900/50 text-red-400"
-                              onClick={() => handleDelete(sale.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Valor e Pagamento */}
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-600/50">
-                        <span className={`text-xs font-medium px-2 py-1 rounded-full border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}>
-                          {getPaymentLabel(sale.payment_type)}
-                        </span>
-                        <div className="text-right">
-                          <span className="text-xl font-bold text-green-400">
+                        {/* Valor e Ações */}
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                          <span className="text-lg font-bold text-emerald-400">
                             R$ {sale.total_value.toFixed(2)}
                           </span>
+                          <button
+                            onClick={() => showCouponImage(sale)}
+                            className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDelete(sale.id)}
+                              className="p-2 rounded-lg hover:bg-red-900/30 text-slate-400 hover:text-red-400 transition-all"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -294,26 +336,26 @@ const SaleLogsSheet: React.FC<SaleLogsSheetProps> = ({ isAdmin }) => {
         </SheetContent>
       </Sheet>
 
-      {/* Modal de Cupom - Com botão fechar funcional */}
+      {/* Modal de Cupom */}
       {couponImage && (
         <div 
-          className="fixed inset-0 z-[10000] bg-black/90 flex flex-col items-center justify-center p-4"
+          className="fixed inset-0 z-[10000] bg-black/95 flex flex-col items-center justify-center p-4"
           onClick={closeCouponModal}
         >
           <button
-            className="mb-4 px-5 py-2.5 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm font-medium hover:bg-gray-700 transition-colors flex items-center gap-2 z-[10001]"
+            className="mb-4 px-6 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white font-medium hover:bg-slate-700 transition-colors flex items-center gap-2 shadow-xl"
             onClick={(e) => {
               e.stopPropagation();
               closeCouponModal();
             }}
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
             Fechar
           </button>
           <img 
             src={couponImage} 
             alt="Cupom" 
-            className="max-w-full max-h-[calc(90vh-80px)] rounded-lg shadow-2xl"
+            className="max-w-full max-h-[calc(90vh-100px)] rounded-xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
