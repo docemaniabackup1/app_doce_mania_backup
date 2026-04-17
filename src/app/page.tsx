@@ -7,7 +7,6 @@ import Footer from '@/components/products/Footer';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import CopyToClipboardButton from '@/components/products/CopyToClipboardButton';
 import ResetQuantitiesButton from '@/components/products/ResetQuantitiesButton';
 import RegisterSaleButton from '@/components/products/RegisterSaleButton';
@@ -17,7 +16,7 @@ import { Product } from '@/lib/supabase';
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [clientName, setClientName] = useState<string>('');
+  const [clientName, setClientName] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set());
@@ -28,8 +27,9 @@ export default function Home() {
       const response = await fetch('/api/products');
       if (!response.ok) throw new Error('Erro ao carregar');
       const data = await response.json();
-      setProducts(data);
-    } catch {
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar:', error);
       toast.error('Erro ao carregar produtos');
     } finally {
       setLoading(false);
@@ -262,14 +262,14 @@ export default function Home() {
   const headerHeight = isAdmin ? 'pt-[68px]' : 'pt-[52px]';
 
   return (
-    <div className="min-h-screen bg-slate-900 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-900">
       <Header products={products} isAdmin={isAdmin} onAdminChange={handleAdminChange} />
       
-      <main className={`w-full max-w-4xl mx-auto px-3 sm:px-4 ${headerHeight} pb-24`}>
+      <main className={`w-full max-w-4xl mx-auto px-3 sm:px-4 ${headerHeight} pb-20`}>
         {/* Seção: Cliente e Ações */}
         <section className="mb-4 mt-2">
-          {/* Nome do Cliente em Destaque */}
-          <div className="bg-slate-800 rounded-xl p-3 border border-slate-700/50 shadow-lg">
+          {/* Nome do Cliente */}
+          <div className="bg-slate-800 rounded-xl p-3 border border-slate-700">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
                 <User className="h-4 w-4 text-blue-400" />
@@ -280,13 +280,13 @@ export default function Home() {
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value.toUpperCase())}
                   placeholder="Nome do cliente *"
-                  className="h-10 text-base bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 uppercase font-semibold"
+                  className="h-10 text-base bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 uppercase font-semibold"
                   maxLength={50}
                 />
               </div>
             </div>
             
-            {/* Botões de Ação em Grid */}
+            {/* Botões de Ação */}
             <div className="grid grid-cols-3 gap-2">
               <RegisterSaleButton
                 products={products}
@@ -304,10 +304,10 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Cupom Preview Colapsável */}
+          {/* Cupom Preview */}
           <details className="mt-2">
             <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400 py-1.5 text-center">
-              Visualizar cupom ▼
+              Ver cupom
             </summary>
             <Textarea
               readOnly
@@ -318,12 +318,12 @@ export default function Home() {
           </details>
         </section>
 
-        {/* Botão de Adicionar Produto - Apenas Admin */}
+        {/* Botão Adicionar Produto - Admin */}
         {isAdmin && (
           <section className="mb-4">
             <Button 
               onClick={handleAddProduct} 
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl shadow-lg"
+              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl"
             >
               <Plus className="h-4 w-4 mr-2" /> Adicionar Produto
             </Button>
@@ -332,7 +332,6 @@ export default function Home() {
 
         {/* Seção: Produtos */}
         <section>
-          {/* Título da Seção */}
           <div className="flex items-center justify-between mb-3 px-1">
             <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Produtos</h2>
             <span className="text-xs text-slate-500">{visibleCount} disponíveis</span>
@@ -340,14 +339,14 @@ export default function Home() {
 
           {loading ? (
             <div className="text-center text-slate-400 py-12">
-              <div className="animate-pulse">Carregando produtos...</div>
+              <div className="animate-pulse">Carregando...</div>
             </div>
           ) : visibleCount === 0 ? (
-            <div className="text-center text-slate-500 py-12 bg-slate-800/50 rounded-xl border border-slate-700/50">
+            <div className="text-center text-slate-500 py-12 bg-slate-800/50 rounded-xl border border-slate-700">
               {isAdmin ? 'Nenhum produto cadastrado' : 'Nenhum produto disponível'}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {productCards}
             </div>
           )}
