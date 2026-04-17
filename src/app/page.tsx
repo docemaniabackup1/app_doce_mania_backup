@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Header from '@/components/products/Header';
 import ProductCard from '@/components/products/ProductCard';
 import Footer from '@/components/products/Footer';
@@ -10,26 +10,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import CopyToClipboardButton from '@/components/products/CopyToClipboardButton';
 import ResetQuantitiesButton from '@/components/products/ResetQuantitiesButton';
+import RegisterSaleButton from '@/components/products/RegisterSaleButton';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Product } from '@/lib/supabase';
-
-// Debounce hook
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debouncedValue;
-}
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [clientName, setClientName] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set());
 
   // Buscar produtos
@@ -50,14 +40,17 @@ export default function Home() {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Atualizar produto com optimistic update
+  // Callback para mudança de admin
+  const handleAdminChange = useCallback((admin: boolean) => {
+    setIsAdmin(admin);
+  }, []);
+
+  // Atualizar produto
   const updateProduct = useCallback(async (id: string, updates: Partial<Product>) => {
-    // Optimistic update
     setProducts(prev => 
       prev.map(p => p.id === id ? { ...p, ...updates } : p)
     );
     
-    // Adicionar aos pendentes
     setPendingUpdates(prev => new Set(prev).add(id));
 
     try {
@@ -72,13 +65,11 @@ export default function Home() {
         throw new Error(data.error);
       }
 
-      // Buscar dados atualizados do servidor
       const updatedProduct = await response.json();
       setProducts(prev => 
         prev.map(p => p.id === id ? updatedProduct : p)
       );
     } catch (err) {
-      // Reverter em caso de erro
       await fetchProducts();
       toast.error(err instanceof Error ? err.message : 'Erro ao atualizar');
     } finally {
@@ -90,13 +81,17 @@ export default function Home() {
     }
   }, [fetchProducts]);
 
-  // Handlers otimizados
+  // Handlers
   const handlePriceChange = useCallback((id: string, price: number) => {
     updateProduct(id, { price });
   }, [updateProduct]);
 
   const handleQuantityChange = useCallback((id: string, quantity: number) => {
     updateProduct(id, { quantity });
+  }, [updateProduct]);
+
+  const handleStockChange = useCallback((id: string, stock: number) => {
+    updateProduct(id, { stock });
   }, [updateProduct]);
 
   const handleNameChange = useCallback((id: string, name: string) => {
@@ -116,7 +111,8 @@ export default function Home() {
         body: JSON.stringify({ 
           name: 'Novo Produto', 
           price: 0, 
-          quantity: 0, 
+          quantity: 0,
+          stock: 100,
           sort_order: maxSortOrder + 1 
         }),
       });
@@ -132,7 +128,6 @@ export default function Home() {
   }, [products]);
 
   const handleDeleteProduct = useCallback(async (id: string) => {
-    // Optimistic delete
     const previousProducts = products;
     setProducts(prev => prev.filter(p => p.id !== id));
 
@@ -141,7 +136,6 @@ export default function Home() {
       if (!response.ok) throw new Error('Erro ao deletar');
       toast.success('Produto deletado!');
     } catch {
-      // Reverter em caso de erro
       setProducts(previousProducts);
       toast.error('Erro ao deletar produto');
     }
@@ -154,7 +148,6 @@ export default function Home() {
     const currentProduct = products[index];
     const targetProduct = products[newIndex];
 
-    // Trocar sort_order
     setProducts(prev => {
       const newProducts = [...prev];
       [newProducts[index], newProducts[newIndex]] = [newProducts[newIndex], newProducts[index]];
@@ -162,7 +155,6 @@ export default function Home() {
     });
 
     try {
-      // Atualizar ambos os produtos
       await Promise.all([
         fetch('/api/products', {
           method: 'PUT',
@@ -181,7 +173,13 @@ export default function Home() {
     }
   }, [products, fetchProducts]);
 
-  // Memoizar texto do cupom
+  // Callback após registrar venda
+  const handleSaleSuccess = useCallback(() => {
+    setClientName('');
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Texto do cupom
   const allProductsText = useMemo(() => {
     const couponWidth = 32;
     const lineSeparator = "-".repeat(couponWidth);
@@ -230,77 +228,104 @@ export default function Home() {
     return text;
   }, [products, clientName]);
 
-  // Memoizar cards dos produtos
+  // Memoizar cards
   const productCards = useMemo(() => 
-    products.map((product, index) => (
-      <ProductCard
-        key={product.id}
-        product={product}
-        onPriceChange={handlePriceChange}
-        onQuantityChange={handleQuantityChange}
-        onNameChange={handleNameChange}
-        onDelete={handleDeleteProduct}
-        onMoveUp={() => handleMove(index, 'up')}
-        onMoveDown={() => handleMove(index, 'down')}
-        isFirst={index === 0}
-        isLast={index === products.length - 1}
-        isPending={pendingUpdates.has(product.id)}
-      />
-    )),
-    [products, handlePriceChange, handleQuantityChange, handleNameChange, handleDeleteProduct, handleMove, pendingUpdates]
+    products.map((product, index) => {
+      // Se não é admin e não tem estoque, esconder
+      const isHidden = !isAdmin && product.stock < 1;
+      
+      return (
+        <ProductCard
+          key={product.id}
+          product={product}
+          isAdmin={isAdmin}
+          onPriceChange={handlePriceChange}
+          onQuantityChange={handleQuantityChange}
+          onStockChange={handleStockChange}
+          onNameChange={handleNameChange}
+          onDelete={handleDeleteProduct}
+          onMoveUp={() => handleMove(index, 'up')}
+          onMoveDown={() => handleMove(index, 'down')}
+          isFirst={index === 0}
+          isLast={index === products.length - 1}
+          isPending={pendingUpdates.has(product.id)}
+          isHidden={isHidden}
+        />
+      );
+    }),
+    [products, isAdmin, handlePriceChange, handleQuantityChange, handleStockChange, handleNameChange, handleDeleteProduct, handleMove, pendingUpdates]
   );
 
+  // Contar produtos visíveis
+  const visibleCount = products.filter(p => isAdmin || p.stock > 0).length;
+
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <Header products={products} />
-      <main className="container mx-auto p-4 pt-20">
-        <div className="mb-6 p-4 border rounded-lg bg-card shadow-sm flex justify-center">
-          <div className="w-fit max-w-full">
-            <div className="mb-4">
-              <Label htmlFor="client-name" className="block text-sm font-medium text-muted-foreground mb-1">
-                Nome do Cliente
-              </Label>
-              <Input
-                id="client-name"
-                type="text"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Digite o nome do cliente"
-                className="w-full"
-                maxLength={50}
-              />
-            </div>
-            <Textarea
-              readOnly
-              value={allProductsText}
-              rows={15}
-              className="mb-3 font-mono bg-muted text-muted-foreground resize-none overflow-x-hidden text-xs"
+    <div className="min-h-screen bg-background pb-24">
+      <Header products={products} isAdmin={isAdmin} onAdminChange={handleAdminChange} />
+      
+      <main className="container mx-auto p-3 pt-16 max-w-lg">
+        {/* Área do Cupom */}
+        <div className="mb-4 p-3 border rounded-lg bg-card shadow-sm">
+          <div className="mb-3">
+            <Label htmlFor="client-name" className="block text-xs font-medium text-muted-foreground mb-1">
+              Nome do Cliente
+            </Label>
+            <Input
+              id="client-name"
+              type="text"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="Digite o nome"
+              className="h-10 text-base"
+              maxLength={50}
             />
+          </div>
+          
+          <Textarea
+            readOnly
+            value={allProductsText}
+            rows={12}
+            className="mb-2 font-mono bg-muted text-muted-foreground resize-none overflow-x-hidden text-xs"
+          />
+          
+          <div className="flex gap-2">
             <CopyToClipboardButton
               textToCopy={allProductsText}
-              buttonText="Copiar Cupom"
-              className="w-full"
+              buttonText="Copiar"
+              className="flex-1"
+            />
+            <RegisterSaleButton
+              products={products}
+              clientName={clientName}
+              onSuccess={handleSaleSuccess}
             />
           </div>
         </div>
 
-        <div className="mb-6 flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
-          <Button onClick={handleAddProduct} size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs">
-            <Plus className="h-3 w-3 mr-1" /> Adicionar Produto
+        {/* Botões de Ação */}
+        <div className="mb-4 flex gap-2">
+          <Button onClick={handleAddProduct} size="sm" className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs h-9">
+            <Plus className="h-3 w-3 mr-1" /> Adicionar
           </Button>
           <ResetQuantitiesButton fetchProducts={fetchProducts} />
         </div>
 
+        {/* Lista de Produtos */}
         {loading ? (
-          <div className="text-center text-muted-foreground">Carregando produtos...</div>
-        ) : products.length === 0 ? (
-          <div className="text-center text-muted-foreground">Nenhum produto cadastrado</div>
+          <div className="text-center text-muted-foreground py-8">
+            Carregando produtos...
+          </div>
+        ) : visibleCount === 0 ? (
+          <div className="text-center text-muted-foreground py-8">
+            {isAdmin ? 'Nenhum produto cadastrado' : 'Nenhum produto disponível'}
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-3">
             {productCards}
           </div>
         )}
       </main>
+      
       <Footer />
     </div>
   );

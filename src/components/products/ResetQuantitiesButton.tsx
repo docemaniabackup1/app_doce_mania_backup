@@ -23,18 +23,22 @@ const ResetQuantitiesButton: React.FC<ResetQuantitiesButtonProps> = ({ fetchProd
         return;
       }
 
-      toast.success(data.message || 'Todas as quantidades foram zeradas!');
+      toast.success('Quantidades zeradas!');
       fetchProducts();
-    } catch (err) {
+    } catch {
       toast.error('Erro ao zerar quantidades');
-      console.error('Error resetting quantities:', err);
     }
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleResetQuantities} className="flex items-center space-x-1 bg-red-600 hover:bg-red-700 text-white">
-      <RotateCcw className="h-3 w-3" />
-      <span>Zerar Quantidades</span>
+    <Button 
+      variant="outline" 
+      size="sm" 
+      onClick={handleResetQuantities} 
+      className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs h-9"
+    >
+      <RotateCcw className="h-3 w-3 mr-1" />
+      Zerar
     </Button>
   );
 };

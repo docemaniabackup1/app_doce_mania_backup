@@ -4,19 +4,22 @@ import React, { useState, useCallback, memo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Check, X, Minus, Plus, ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, Check, X, Minus, Plus, ChevronUp, ChevronDown, Loader2, Package } from 'lucide-react';
 
 interface Product {
   id: string;
   name: string;
   price: number;
   quantity: number;
+  stock: number;
 }
 
 interface ProductCardProps {
   product: Product;
+  isAdmin: boolean;
   onPriceChange: (id: string, price: number) => void;
   onQuantityChange: (id: string, quantity: number) => void;
+  onStockChange: (id: string, stock: number) => void;
   onNameChange: (id: string, newName: string) => void;
   onDelete: (id: string) => void;
   onMoveUp?: () => void;
@@ -24,13 +27,15 @@ interface ProductCardProps {
   isFirst?: boolean;
   isLast?: boolean;
   isPending?: boolean;
+  isHidden?: boolean;
 }
 
-// Componente memoizado para evitar re-renders desnecessários
 const ProductCard: React.FC<ProductCardProps> = memo(({
   product,
+  isAdmin,
   onPriceChange,
   onQuantityChange,
+  onStockChange,
   onNameChange,
   onDelete,
   onMoveUp,
@@ -38,11 +43,11 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   isFirst,
   isLast,
   isPending,
+  isHidden,
 }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(product.name);
 
-  // Callbacks memoizados
   const handleEditClick = useCallback(() => {
     setEditedName(product.name);
     setIsEditingName(true);
@@ -61,12 +66,18 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   }, [product.name]);
 
   const handleDecrementQuantity = useCallback(() => {
-    onQuantityChange(product.id, Math.max(0, product.quantity - 1));
+    if (product.quantity > 0) {
+      onQuantityChange(product.id, product.quantity - 1);
+    }
   }, [product.id, product.quantity, onQuantityChange]);
 
   const handleIncrementQuantity = useCallback(() => {
+    // Verificar limite de estoque para vendedor
+    if (!isAdmin && product.quantity >= product.stock) {
+      return;
+    }
     onQuantityChange(product.id, product.quantity + 1);
-  }, [product.id, product.quantity, onQuantityChange]);
+  }, [product.id, product.quantity, product.stock, isAdmin, onQuantityChange]);
 
   const handlePriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -87,10 +98,27 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
     } else {
       const newQuantity = parseInt(value, 10);
       if (!isNaN(newQuantity) && newQuantity >= 0) {
-        onQuantityChange(product.id, newQuantity);
+        // Limitar ao estoque disponível para vendedor
+        if (!isAdmin && newQuantity > product.stock) {
+          onQuantityChange(product.id, product.stock);
+        } else {
+          onQuantityChange(product.id, newQuantity);
+        }
       }
     }
-  }, [product.id, onQuantityChange]);
+  }, [product.id, product.stock, isAdmin, onQuantityChange]);
+
+  const handleStockChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '') {
+      onStockChange(product.id, 0);
+    } else {
+      const newStock = parseInt(value, 10);
+      if (!isNaN(newStock) && newStock >= 0) {
+        onStockChange(product.id, newStock);
+      }
+    }
+  }, [product.id, onStockChange]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSaveName();
@@ -101,8 +129,20 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
     onDelete(product.id);
   }, [product.id, onDelete]);
 
+  // Indicador de estoque baixo
+  const isLowStock = product.stock <= 5 && product.stock > 0;
+  const isOutOfStock = product.stock === 0;
+
+  // Se está escondido, não renderiza
+  if (isHidden) {
+    return null;
+  }
+
   return (
-    <Card className="w-full max-w-sm relative group">
+    <Card className={`w-full max-w-sm relative group ${
+      isOutOfStock ? 'opacity-50 border-red-300' : 
+      isLowStock ? 'border-yellow-300' : ''
+    }`}>
       {/* Indicador de loading */}
       {isPending && (
         <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-20 rounded-lg">
@@ -140,83 +180,117 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
             value={editedName}
             onChange={(e) => setEditedName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="text-lg font-semibold mr-2"
+            className="text-base font-semibold mr-2"
             autoFocus
             maxLength={100}
           />
         ) : (
-          <CardTitle className="text-lg font-semibold truncate" title={product.name}>
+          <CardTitle className="text-base font-semibold truncate" title={product.name}>
             {product.name}
           </CardTitle>
         )}
         <div className="flex space-x-1">
           {isEditingName ? (
             <>
-              <Button variant="ghost" size="icon" onClick={handleSaveName} aria-label="Salvar">
+              <Button variant="ghost" size="icon" onClick={handleSaveName} aria-label="Salvar" className="h-8 w-8">
                 <Check className="h-4 w-4 text-green-600" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleCancelEdit} aria-label="Cancelar">
+              <Button variant="ghost" size="icon" onClick={handleCancelEdit} aria-label="Cancelar" className="h-8 w-8">
                 <X className="h-4 w-4 text-red-600" />
               </Button>
             </>
           ) : (
-            <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label="Editar nome">
-              <Pencil className="h-4 w-4" />
-            </Button>
+            <>
+              <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label="Editar nome" className="h-8 w-8">
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleDelete} aria-label="Deletar produto" className="h-8 w-8">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </>
           )}
-          <Button variant="ghost" size="icon" onClick={handleDelete} aria-label="Deletar produto">
-            <Trash2 className="h-4 w-4" />
-          </Button>
         </div>
       </CardHeader>
       
-      <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <CardContent className="space-y-3">
+        {/* Preço */}
         <div>
-          <label htmlFor={`price-${product.id}`} className="block text-sm font-medium text-muted-foreground">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
             Preço
           </label>
           <Input
-            id={`price-${product.id}`}
             type="number"
             value={product.price}
             onChange={handlePriceChange}
-            className="mt-1"
             min={0}
             step="0.01"
+            className="h-10 text-base"
           />
         </div>
+
+        {/* Quantidade na venda */}
         <div>
-          <label htmlFor={`quantity-${product.id}`} className="block text-sm font-medium text-muted-foreground">
-            Quantidade
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
+            Quantidade {isAdmin && '(venda)'}
           </label>
-          <div className="flex items-center mt-1">
+          <div className="flex items-center">
             <Button 
               variant="outline" 
               size="icon" 
               onClick={handleDecrementQuantity} 
-              className="h-8 w-8 rounded-r-none"
+              className="h-10 w-10 rounded-r-none text-lg"
               aria-label="Diminuir quantidade"
             >
-              <Minus className="h-4 w-4" />
+              <Minus className="h-5 w-5" />
             </Button>
             <Input
-              id={`quantity-${product.id}`}
               type="number"
               value={product.quantity}
               onChange={handleQuantityInputChange}
-              className="flex-1 text-center rounded-none border-x-0"
+              className="flex-1 text-center rounded-none border-x-0 h-10 text-base"
               min={0}
+              max={!isAdmin ? product.stock : undefined}
             />
             <Button 
               variant="outline" 
               size="icon" 
               onClick={handleIncrementQuantity} 
-              className="h-8 w-8 rounded-l-none"
+              className="h-10 w-10 rounded-l-none text-lg"
               aria-label="Aumentar quantidade"
+              disabled={!isAdmin && product.quantity >= product.stock}
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
             </Button>
           </div>
+        </div>
+
+        {/* Estoque (apenas admin) */}
+        {isAdmin && (
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              <Package className="h-3 w-3 inline mr-1" />
+              Estoque
+            </label>
+            <Input
+              type="number"
+              value={product.stock}
+              onChange={handleStockChange}
+              min={0}
+              className="h-10 text-base"
+            />
+          </div>
+        )}
+
+        {/* Indicador de estoque */}
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">Disponível:</span>
+          <span className={`font-medium ${
+            isOutOfStock ? 'text-red-600' : 
+            isLowStock ? 'text-yellow-600' : 
+            'text-green-600'
+          }`}>
+            {product.stock} un.
+          </span>
         </div>
       </CardContent>
     </Card>

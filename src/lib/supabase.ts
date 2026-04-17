@@ -11,12 +11,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Configuração otimizada do cliente
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false, // Não precisa de sessão para API pública
+    persistSession: false,
     autoRefreshToken: false,
   },
   global: {
     headers: {
-      'x-application': 'elma-chips-app',
+      'x-application': 'doce-mania-app',
     },
   },
 });
@@ -27,8 +27,20 @@ export interface Product {
   name: string;
   price: number;
   quantity: number;
+  stock: number;
   sort_order: number;
   created_at?: string;
+}
+
+export interface SaleLog {
+  id: string;
+  product_id: string | null;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  client_name: string;
+  created_at: string;
 }
 
 // Validação de tipos
@@ -41,5 +53,18 @@ export function isValidProduct(data: unknown): data is Product {
     typeof obj.price === 'number' &&
     typeof obj.quantity === 'number' &&
     typeof obj.sort_order === 'number'
+  );
+}
+
+export function isValidSaleLog(data: unknown): data is SaleLog {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return (
+    typeof obj.id === 'string' &&
+    typeof obj.product_name === 'string' &&
+    typeof obj.quantity === 'number' &&
+    typeof obj.unit_price === 'number' &&
+    typeof obj.total_price === 'number' &&
+    typeof obj.created_at === 'string'
   );
 }

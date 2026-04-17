@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase, Product, isValidProduct } from '@/lib/supabase';
 
-// Headers de segurança padrão
 const securityHeaders = {
   'Content-Type': 'application/json',
   'X-Content-Type-Options': 'nosniff',
@@ -9,43 +8,41 @@ const securityHeaders = {
   'Cache-Control': 'no-store, max-age=0',
 };
 
-// Helper para resposta de erro
 function errorResponse(message: string, status: number = 500) {
   return NextResponse.json({ error: message }, { status, headers: securityHeaders });
 }
 
-// Helper para resposta de sucesso
 function successResponse(data: unknown, status: number = 200) {
   return NextResponse.json(data, { status, headers: securityHeaders });
 }
 
-// Validação de ID UUID
 function isValidUUID(id: string): boolean {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(id);
 }
 
-// Validação de nome
 function sanitizeName(name: string): string {
-  return name.trim().substring(0, 100); // Limita a 100 caracteres
+  return name.trim().substring(0, 100);
 }
 
-// Validação de preço
 function validatePrice(price: number): number {
   return Math.max(0, Math.min(999999.99, Number(price.toFixed(2))));
 }
 
-// Validação de quantidade
 function validateQuantity(quantity: number): number {
   return Math.max(0, Math.min(99999, Math.floor(quantity)));
 }
 
-// GET - Buscar todos os produtos (com cache de schema)
+function validateStock(stock: number): number {
+  return Math.max(0, Math.min(99999, Math.floor(stock)));
+}
+
+// GET - Buscar todos os produtos
 export async function GET() {
   try {
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, price, quantity, sort_order, created_at')
+      .select('id, name, price, quantity, stock, sort_order, created_at')
       .order('sort_order', { ascending: true });
 
     if (error) {
@@ -53,7 +50,6 @@ export async function GET() {
       return errorResponse('Erro ao carregar produtos', 500);
     }
 
-    // Validar dados antes de retornar
     const validProducts = data?.filter(isValidProduct) ?? [];
     return successResponse(validProducts);
   } catch (err) {
@@ -67,16 +63,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // Validação de entrada
     const name = sanitizeName(body.name || 'Novo Produto');
     const price = validatePrice(body.price ?? 0);
     const quantity = validateQuantity(body.quantity ?? 0);
+    const stock = validateStock(body.stock ?? 100);
     const sort_order = Math.max(0, Math.min(99999, Number(body.sort_order) || 0));
 
     const { data, error } = await supabase
       .from('products')
-      .insert([{ name, price, quantity, sort_order }])
-      .select('id, name, price, quantity, sort_order, created_at')
+      .insert([{ name, price, quantity, stock, sort_order }])
+      .select('id, name, price, quantity, stock, sort_order, created_at')
       .single();
 
     if (error) {
@@ -97,12 +93,10 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { id, ...updates } = body;
 
-    // Validação de ID
     if (!id || !isValidUUID(id)) {
       return errorResponse('ID inválido', 400);
     }
 
-    // Sanitizar updates
     const sanitizedUpdates: Record<string, unknown> = {};
     
     if ('name' in updates) {
@@ -113,6 +107,9 @@ export async function PUT(request: Request) {
     }
     if ('quantity' in updates) {
       sanitizedUpdates.quantity = validateQuantity(updates.quantity);
+    }
+    if ('stock' in updates) {
+      sanitizedUpdates.stock = validateStock(updates.stock);
     }
     if ('sort_order' in updates) {
       sanitizedUpdates.sort_order = Math.max(0, Math.min(99999, Number(updates.sort_order) || 0));
@@ -126,7 +123,7 @@ export async function PUT(request: Request) {
       .from('products')
       .update(sanitizedUpdates)
       .eq('id', id)
-      .select('id, name, price, quantity, sort_order, created_at')
+      .select('id, name, price, quantity, stock, sort_order, created_at')
       .single();
 
     if (error) {
@@ -151,7 +148,6 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
-    // Validação de ID
     if (!id || !isValidUUID(id)) {
       return errorResponse('ID inválido', 400);
     }
