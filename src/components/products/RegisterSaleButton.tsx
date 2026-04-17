@@ -110,7 +110,8 @@ const RegisterSaleButton: React.FC<RegisterSaleButtonProps> = memo(({
     <>
       <Button
         onClick={handleOpenDialog}
-        className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white h-11 sm:h-10"
+        className="flex-1 sm:flex-none text-white h-11 sm:h-10"
+        style={{ backgroundColor: '#1e40af' }}
         disabled={productsToSell.length === 0}
       >
         <ShoppingCart className="h-4 w-4 mr-2" />

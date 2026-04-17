@@ -276,9 +276,9 @@ export default function Home() {
               id="client-name"
               type="text"
               value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
+              onChange={(e) => setClientName(e.target.value.toUpperCase())}
               placeholder="Digite o nome (obrigatório)"
-              className="h-11 sm:h-10 text-base bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
+              className="h-11 sm:h-10 text-base bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 uppercase"
               maxLength={50}
             />
           </div>
