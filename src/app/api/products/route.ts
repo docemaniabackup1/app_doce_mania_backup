@@ -1,32 +1,64 @@
 import { NextResponse } from 'next/server';
-import { supabase, Product } from '@/lib/supabase';
+import { supabase, Product, isValidProduct } from '@/lib/supabase';
 
-// GET - Buscar todos os produtos
+// Headers de segurança padrão
+const securityHeaders = {
+  'Content-Type': 'application/json',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Cache-Control': 'no-store, max-age=0',
+};
+
+// Helper para resposta de erro
+function errorResponse(message: string, status: number = 500) {
+  return NextResponse.json({ error: message }, { status, headers: securityHeaders });
+}
+
+// Helper para resposta de sucesso
+function successResponse(data: unknown, status: number = 200) {
+  return NextResponse.json(data, { status, headers: securityHeaders });
+}
+
+// Validação de ID UUID
+function isValidUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
+// Validação de nome
+function sanitizeName(name: string): string {
+  return name.trim().substring(0, 100); // Limita a 100 caracteres
+}
+
+// Validação de preço
+function validatePrice(price: number): number {
+  return Math.max(0, Math.min(999999.99, Number(price.toFixed(2))));
+}
+
+// Validação de quantidade
+function validateQuantity(quantity: number): number {
+  return Math.max(0, Math.min(99999, Math.floor(quantity)));
+}
+
+// GET - Buscar todos os produtos (com cache de schema)
 export async function GET() {
   try {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true });
+      .select('id, name, price, quantity, sort_order, created_at')
+      .order('sort_order', { ascending: true });
 
     if (error) {
-      console.warn('Tentando busca alternativa sem sort_order:', error.message);
-      const { data: altData, error: altError } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (altError) {
-        return NextResponse.json({ error: altError.message }, { status: 500 });
-      }
-      return NextResponse.json(altData as Product[]);
+      console.error('[API] Error fetching products:', error.message);
+      return errorResponse('Erro ao carregar produtos', 500);
     }
 
-    return NextResponse.json(data as Product[]);
+    // Validar dados antes de retornar
+    const validProducts = data?.filter(isValidProduct) ?? [];
+    return successResponse(validProducts);
   } catch (err) {
-    console.error('Error fetching products:', err);
-    return NextResponse.json({ error: 'Erro ao carregar produtos' }, { status: 500 });
+    console.error('[API] Unexpected error:', err);
+    return errorResponse('Erro interno do servidor', 500);
   }
 }
 
@@ -34,26 +66,28 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, price, quantity, sort_order } = body;
+    
+    // Validação de entrada
+    const name = sanitizeName(body.name || 'Novo Produto');
+    const price = validatePrice(body.price ?? 0);
+    const quantity = validateQuantity(body.quantity ?? 0);
+    const sort_order = Math.max(0, Math.min(99999, Number(body.sort_order) || 0));
 
     const { data, error } = await supabase
       .from('products')
-      .insert([{ 
-        name: name || 'Novo Produto', 
-        price: price || 0, 
-        quantity: quantity || 0, 
-        sort_order: sort_order || 0 
-      }])
-      .select();
+      .insert([{ name, price, quantity, sort_order }])
+      .select('id, name, price, quantity, sort_order, created_at')
+      .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API] Error adding product:', error.message);
+      return errorResponse('Erro ao adicionar produto', 500);
     }
 
-    return NextResponse.json(data[0] as Product);
+    return successResponse(data as Product, 201);
   } catch (err) {
-    console.error('Error adding product:', err);
-    return NextResponse.json({ error: 'Erro ao adicionar produto' }, { status: 500 });
+    console.error('[API] Unexpected error:', err);
+    return errorResponse('Erro interno do servidor', 500);
   }
 }
 
@@ -63,24 +97,51 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { id, ...updates } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
+    // Validação de ID
+    if (!id || !isValidUUID(id)) {
+      return errorResponse('ID inválido', 400);
+    }
+
+    // Sanitizar updates
+    const sanitizedUpdates: Record<string, unknown> = {};
+    
+    if ('name' in updates) {
+      sanitizedUpdates.name = sanitizeName(updates.name);
+    }
+    if ('price' in updates) {
+      sanitizedUpdates.price = validatePrice(updates.price);
+    }
+    if ('quantity' in updates) {
+      sanitizedUpdates.quantity = validateQuantity(updates.quantity);
+    }
+    if ('sort_order' in updates) {
+      sanitizedUpdates.sort_order = Math.max(0, Math.min(99999, Number(updates.sort_order) || 0));
+    }
+
+    if (Object.keys(sanitizedUpdates).length === 0) {
+      return errorResponse('Nenhum campo válido para atualizar', 400);
     }
 
     const { data, error } = await supabase
       .from('products')
-      .update(updates)
+      .update(sanitizedUpdates)
       .eq('id', id)
-      .select();
+      .select('id, name, price, quantity, sort_order, created_at')
+      .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API] Error updating product:', error.message);
+      return errorResponse('Erro ao atualizar produto', 500);
     }
 
-    return NextResponse.json(data[0] as Product);
+    if (!data) {
+      return errorResponse('Produto não encontrado', 404);
+    }
+
+    return successResponse(data as Product);
   } catch (err) {
-    console.error('Error updating product:', err);
-    return NextResponse.json({ error: 'Erro ao atualizar produto' }, { status: 500 });
+    console.error('[API] Unexpected error:', err);
+    return errorResponse('Erro interno do servidor', 500);
   }
 }
 
@@ -90,8 +151,9 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
+    // Validação de ID
+    if (!id || !isValidUUID(id)) {
+      return errorResponse('ID inválido', 400);
     }
 
     const { error } = await supabase
@@ -100,12 +162,13 @@ export async function DELETE(request: Request) {
       .eq('id', id);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API] Error deleting product:', error.message);
+      return errorResponse('Erro ao deletar produto', 500);
     }
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (err) {
-    console.error('Error deleting product:', err);
-    return NextResponse.json({ error: 'Erro ao deletar produto' }, { status: 500 });
+    console.error('[API] Unexpected error:', err);
+    return errorResponse('Erro interno do servidor', 500);
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import Header from '@/components/products/Header';
 import ProductCard from '@/components/products/ProductCard';
 import Footer from '@/components/products/Footer';
@@ -14,23 +14,33 @@ import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Product } from '@/lib/supabase';
 
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [clientName, setClientName] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set());
 
+  // Buscar produtos
   const fetchProducts = useCallback(async () => {
     try {
       const response = await fetch('/api/products');
+      if (!response.ok) throw new Error('Erro ao carregar');
       const data = await response.json();
-      if (response.ok) {
-        setProducts(data);
-      } else {
-        toast.error('Erro ao carregar produtos: ' + data.error);
-      }
-    } catch (err) {
+      setProducts(data);
+    } catch {
       toast.error('Erro ao carregar produtos');
-      console.error('Error fetching products:', err);
     } finally {
       setLoading(false);
     }
@@ -40,62 +50,61 @@ export default function Home() {
     fetchProducts();
   }, [fetchProducts]);
 
-  const handlePriceChange = async (id: string, newPrice: number) => {
+  // Atualizar produto com optimistic update
+  const updateProduct = useCallback(async (id: string, updates: Partial<Product>) => {
+    // Optimistic update
+    setProducts(prev => 
+      prev.map(p => p.id === id ? { ...p, ...updates } : p)
+    );
+    
+    // Adicionar aos pendentes
+    setPendingUpdates(prev => new Set(prev).add(id));
+
     try {
       const response = await fetch('/api/products', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, price: newPrice }),
+        body: JSON.stringify({ id, ...updates }),
       });
-      if (response.ok) {
-        fetchProducts();
-      } else {
-        const data = await response.json();
-        toast.error('Erro ao atualizar preço: ' + data.error);
-      }
-    } catch (err) {
-      toast.error('Erro ao atualizar preço');
-    }
-  };
 
-  const handleQuantityChange = async (id: string, newQuantity: number) => {
-    try {
-      const response = await fetch('/api/products', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, quantity: newQuantity }),
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error);
+      }
+
+      // Buscar dados atualizados do servidor
+      const updatedProduct = await response.json();
+      setProducts(prev => 
+        prev.map(p => p.id === id ? updatedProduct : p)
+      );
+    } catch (err) {
+      // Reverter em caso de erro
+      await fetchProducts();
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar');
+    } finally {
+      setPendingUpdates(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
       });
-      if (response.ok) {
-        fetchProducts();
-      } else {
-        const data = await response.json();
-        toast.error('Erro ao atualizar quantidade: ' + data.error);
-      }
-    } catch (err) {
-      toast.error('Erro ao atualizar quantidade');
     }
-  };
+  }, [fetchProducts]);
 
-  const handleNameChange = async (id: string, newName: string) => {
-    try {
-      const response = await fetch('/api/products', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, name: newName }),
-      });
-      if (response.ok) {
-        fetchProducts();
-        toast.success('Nome atualizado!');
-      } else {
-        const data = await response.json();
-        toast.error('Erro ao atualizar nome: ' + data.error);
-      }
-    } catch (err) {
-      toast.error('Erro ao atualizar nome');
-    }
-  };
+  // Handlers otimizados
+  const handlePriceChange = useCallback((id: string, price: number) => {
+    updateProduct(id, { price });
+  }, [updateProduct]);
 
-  const handleAddProduct = async () => {
+  const handleQuantityChange = useCallback((id: string, quantity: number) => {
+    updateProduct(id, { quantity });
+  }, [updateProduct]);
+
+  const handleNameChange = useCallback((id: string, name: string) => {
+    updateProduct(id, { name });
+    toast.success('Nome atualizado!');
+  }, [updateProduct]);
+
+  const handleAddProduct = useCallback(async () => {
     const maxSortOrder = products.length > 0 
       ? Math.max(...products.map(p => p.sort_order || 0)) 
       : 0;
@@ -111,130 +120,106 @@ export default function Home() {
           sort_order: maxSortOrder + 1 
         }),
       });
-      if (response.ok) {
-        fetchProducts();
-        toast.success('Produto adicionado!');
-      } else {
-        const data = await response.json();
-        toast.error('Erro ao adicionar produto: ' + data.error);
-      }
-    } catch (err) {
+
+      if (!response.ok) throw new Error('Erro ao adicionar');
+
+      const newProduct = await response.json();
+      setProducts(prev => [...prev, newProduct]);
+      toast.success('Produto adicionado!');
+    } catch {
       toast.error('Erro ao adicionar produto');
     }
-  };
+  }, [products]);
 
-  const handleDeleteProduct = async (id: string) => {
+  const handleDeleteProduct = useCallback(async (id: string) => {
+    // Optimistic delete
+    const previousProducts = products;
+    setProducts(prev => prev.filter(p => p.id !== id));
+
     try {
-      const response = await fetch(`/api/products?id=${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchProducts();
-        toast.success('Produto deletado!');
-      } else {
-        const data = await response.json();
-        toast.error('Erro ao deletar produto: ' + data.error);
-      }
-    } catch (err) {
+      const response = await fetch(`/api/products?id=${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Erro ao deletar');
+      toast.success('Produto deletado!');
+    } catch {
+      // Reverter em caso de erro
+      setProducts(previousProducts);
       toast.error('Erro ao deletar produto');
     }
-  };
+  }, [products]);
 
-  const handleMove = async (index: number, direction: 'up' | 'down') => {
+  const handleMove = useCallback(async (index: number, direction: 'up' | 'down') => {
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= products.length) return;
 
     const currentProduct = products[index];
     const targetProduct = products[newIndex];
 
-    const sortOrders = products.map(p => p.sort_order);
-    const hasDuplicates = new Set(sortOrders).size !== sortOrders.length;
-    const allZeros = sortOrders.every(so => so === 0);
-
-    if (hasDuplicates || allZeros) {
-      const updates = products.map((p, i) => {
-        let finalOrder = i;
-        if (i === index) finalOrder = newIndex;
-        else if (i === newIndex) finalOrder = index;
-        
-        return fetch('/api/products', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: p.id, sort_order: finalOrder }),
-        });
-      });
-      
-      try {
-        await Promise.all(updates);
-        fetchProducts();
-      } catch (err) {
-        toast.error('Erro ao organizar produtos.');
-      }
-      return;
-    }
+    // Trocar sort_order
+    setProducts(prev => {
+      const newProducts = [...prev];
+      [newProducts[index], newProducts[newIndex]] = [newProducts[newIndex], newProducts[index]];
+      return newProducts;
+    });
 
     try {
-      await fetch('/api/products', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: currentProduct.id, sort_order: targetProduct.sort_order }),
-      });
-
-      await fetch('/api/products', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: targetProduct.id, sort_order: currentProduct.sort_order }),
-      });
-
+      // Atualizar ambos os produtos
+      await Promise.all([
+        fetch('/api/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: currentProduct.id, sort_order: targetProduct.sort_order }),
+        }),
+        fetch('/api/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: targetProduct.id, sort_order: currentProduct.sort_order }),
+        }),
+      ]);
+    } catch {
+      toast.error('Erro ao reordenar');
       fetchProducts();
-    } catch (err) {
-      toast.error('Erro ao reordenar.');
     }
-  };
+  }, [products, fetchProducts]);
 
-  const generateAllProductsText = () => {
-    let text = "";
+  // Memoizar texto do cupom
+  const allProductsText = useMemo(() => {
     const couponWidth = 32;
-
+    const lineSeparator = "-".repeat(couponWidth);
+    const starSeparator = "*".repeat(couponWidth);
+    
     const centerText = (str: string) => {
       const padding = Math.max(0, couponWidth - str.length);
       const padLeft = Math.floor(padding / 2);
-      const padRight = padding - padLeft;
-      return ' '.repeat(padLeft) + str + ' '.repeat(padRight);
+      return ' '.repeat(padLeft) + str + ' '.repeat(padding - padLeft);
     };
-
-    const lineSeparator = "-".repeat(couponWidth);
-    const starSeparator = "*".repeat(couponWidth);
-
-    text += starSeparator + "\n";
-    text += centerText("CUPOM NAO FISCAL") + "\n";
-    text += starSeparator + "\n\n";
-    const displayClientName = clientName.trim() === '' ? "Nao identificado" : clientName.trim();
-    text += `Cliente: ${displayClientName}\n`;
-    text += lineSeparator + "\n";
 
     const descColWidth = 15;
     const qtdColWidth = 5;
     const valorColWidth = 8;
     const spacing = (couponWidth - (descColWidth + qtdColWidth + valorColWidth)) / 2;
 
+    const filteredProducts = products.filter(p => p.quantity >= 1);
+    const total = filteredProducts.reduce((sum, p) => sum + p.price * p.quantity, 0);
+    const displayClientName = clientName.trim() || "Nao identificado";
+
+    let text = "";
+    text += starSeparator + "\n";
+    text += centerText("CUPOM NAO FISCAL") + "\n";
+    text += starSeparator + "\n\n";
+    text += `Cliente: ${displayClientName}\n`;
+    text += lineSeparator + "\n";
     text += "DESCRICAO".padEnd(descColWidth) + " ".repeat(Math.floor(spacing)) + "QTD".padStart(qtdColWidth) + " ".repeat(Math.ceil(spacing)) + "VALOR".padStart(valorColWidth) + "\n";
     text += lineSeparator + "\n";
 
-    let total = 0;
-    const filteredProducts = products.filter(product => product.quantity >= 1);
-
-    filteredProducts.forEach((product) => {
-      const productName = product.name.substring(0, descColWidth).padEnd(descColWidth);
-      const quantityWithX = (product.quantity + 'x').padStart(qtdColWidth);
-      const unitValue = product.price.toFixed(2).padStart(valorColWidth);
+    filteredProducts.forEach(p => {
+      const productName = p.name.substring(0, descColWidth).padEnd(descColWidth);
+      const quantityWithX = (p.quantity + 'x').padStart(qtdColWidth);
+      const unitValue = p.price.toFixed(2).padStart(valorColWidth);
       text += `${productName}${' '.repeat(Math.floor(spacing))}${quantityWithX}${' '.repeat(Math.ceil(spacing))}${unitValue}\n`;
-      total += product.price * product.quantity;
     });
 
     text += lineSeparator + "\n";
-    const totalValue = `R$ ${total.toFixed(2)}`;
-    text += `TOTAL:${' '.repeat(couponWidth - 6 - totalValue.length)}${totalValue}\n\n`;
+    text += `TOTAL:${' '.repeat(couponWidth - 6 - 10)}R$ ${total.toFixed(2)}\n\n`;
     text += `Forma de Pagamento:${' '.repeat(couponWidth - 19 - 12)}Pix/Dinheiro\n\n`;
     text += lineSeparator + "\n";
     text += centerText("OBRIGADO PELA PREFERENCIA!") + "\n";
@@ -243,9 +228,27 @@ export default function Home() {
     text += starSeparator;
 
     return text;
-  };
+  }, [products, clientName]);
 
-  const allProductsText = generateAllProductsText();
+  // Memoizar cards dos produtos
+  const productCards = useMemo(() => 
+    products.map((product, index) => (
+      <ProductCard
+        key={product.id}
+        product={product}
+        onPriceChange={handlePriceChange}
+        onQuantityChange={handleQuantityChange}
+        onNameChange={handleNameChange}
+        onDelete={handleDeleteProduct}
+        onMoveUp={() => handleMove(index, 'up')}
+        onMoveDown={() => handleMove(index, 'down')}
+        isFirst={index === 0}
+        isLast={index === products.length - 1}
+        isPending={pendingUpdates.has(product.id)}
+      />
+    )),
+    [products, handlePriceChange, handleQuantityChange, handleNameChange, handleDeleteProduct, handleMove, pendingUpdates]
+  );
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -264,6 +267,7 @@ export default function Home() {
                 onChange={(e) => setClientName(e.target.value)}
                 placeholder="Digite o nome do cliente"
                 className="w-full"
+                maxLength={50}
               />
             </div>
             <Textarea
@@ -280,7 +284,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="mb-6 flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
+        <div className="mb-6 flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
           <Button onClick={handleAddProduct} size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs">
             <Plus className="h-3 w-3 mr-1" /> Adicionar Produto
           </Button>
@@ -289,22 +293,11 @@ export default function Home() {
 
         {loading ? (
           <div className="text-center text-muted-foreground">Carregando produtos...</div>
+        ) : products.length === 0 ? (
+          <div className="text-center text-muted-foreground">Nenhum produto cadastrado</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {products.map((product, index) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onPriceChange={handlePriceChange}
-                onQuantityChange={handleQuantityChange}
-                onNameChange={handleNameChange}
-                onDelete={handleDeleteProduct}
-                onMoveUp={() => handleMove(index, 'up')}
-                onMoveDown={() => handleMove(index, 'down')}
-                isFirst={index === 0}
-                isLast={index === products.length - 1}
-              />
-            ))}
+            {productCards}
           </div>
         )}
       </main>
